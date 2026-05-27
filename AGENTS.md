@@ -1,5 +1,17 @@
-<!-- BEGIN:nextjs-agent-rules -->
-# This is NOT the Next.js you know
+# Gradix Engineering Rules
 
-This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` before writing any code. Heed deprecation notices.
-<!-- END:nextjs-agent-rules -->
+- Use TypeScript everywhere
+- Use App Router only
+- Use Server Actions
+- No giant page.tsx files
+- Keep components reusable
+- Mobile-first design
+- Use Tailwind v4
+- Use shadcn/ui
+- Never hardcode secrets
+- Use Supabase SSR
+- Use clean folder architecture
+- Avoid duplicated logic
+- All forms must use React Hook Form + Zod
+- All tables must be responsive
+- Generate production-ready code only
