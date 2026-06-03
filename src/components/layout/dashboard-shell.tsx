@@ -3,6 +3,7 @@ import Link from "next/link";
 import { BookOpenCheck, GraduationCap, Home, Menu, Search } from "lucide-react";
 
 import { siteConfig } from "@/config/site";
+import { LogoutButton } from "@/components/auth/logout-button";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -62,10 +63,13 @@ export function DashboardShell({ children }: DashboardShellProps) {
               <span>Phase 1 foundation</span>
             </div>
           </div>
-          <Button variant="outline" className="hidden gap-2 sm:inline-flex">
-            <Search />
-            Search
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" className="hidden gap-2 sm:inline-flex">
+              <Search />
+              Search
+            </Button>
+            <LogoutButton />
+          </div>
         </header>
         <main className="flex-1 px-4 py-6 sm:px-6 lg:px-8">
           <div className="mx-auto w-full max-w-6xl">{children}</div>

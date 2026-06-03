@@ -14,6 +14,7 @@ export type Database = {
           id: string;
           name: string;
           slug: string;
+          school_code: string;
           motto: string | null;
           logo_url: string | null;
           seal_url: string | null;
@@ -35,7 +36,8 @@ export type Database = {
           created_at: string;
           updated_at: string;
         };
-        Insert: Partial<Database["public"]["Tables"]["schools"]["Row"]> & Pick<Database["public"]["Tables"]["schools"]["Row"], "name" | "slug">;
+        Insert: Partial<Database["public"]["Tables"]["schools"]["Row"]> &
+          Pick<Database["public"]["Tables"]["schools"]["Row"], "name" | "slug" | "school_code">;
         Update: Partial<Database["public"]["Tables"]["schools"]["Row"]>;
         Relationships: [];
       };
@@ -272,6 +274,18 @@ export type Database = {
       generate_student_code: {
         Args: { target_school_id: string };
         Returns: string;
+      };
+      generate_school_code: {
+        Args: Record<string, never>;
+        Returns: string;
+      };
+      check_registration_rate_limit: {
+        Args: { source_email?: string | null; source_ip: string };
+        Returns: boolean;
+      };
+      finalize_school_registration: {
+        Args: Record<string, never>;
+        Returns: Json;
       };
       validate_result_upload: {
         Args: { target_upload_id: string };
