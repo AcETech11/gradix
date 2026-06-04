@@ -66,6 +66,49 @@ create table if not exists public.schools (
   constraint schools_email_format check (email is null or email ~* '^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$')
 );
 
+alter table public.schools
+add column if not exists slug text;
+
+alter table if exists public.schools
+add column if not exists subscription_status public.subscription_status not null default 'trialing',
+add column if not exists subscription_plan text not null default 'starter',
+add column if not exists subscription_started_at timestamptz,
+add column if not exists subscription_ends_at timestamptz,
+add column if not exists metadata jsonb not null default '{}'::jsonb,
+add column if not exists created_at timestamptz not null default now(),
+add column if not exists updated_at timestamptz not null default now();
+
+update public.schools
+set
+  subscription_status = coalesce(subscription_status, 'trialing'::public.subscription_status),
+  subscription_plan = coalesce(subscription_plan, 'starter'),
+  metadata = coalesce(metadata, '{}'::jsonb),
+  created_at = coalesce(created_at, now()),
+  updated_at = coalesce(updated_at, now())
+where
+  subscription_status is null
+  or subscription_plan is null
+  or metadata is null
+  or created_at is null
+  or updated_at is null;
+
+alter table public.schools
+  alter column subscription_status set not null,
+  alter column subscription_plan set not null,
+  alter column metadata set not null,
+  alter column created_at set not null,
+  alter column updated_at set not null;
+
+update public.schools
+set slug = coalesce(
+  nullif(btrim(slug), ''),
+  trim(both '-' from regexp_replace(lower(coalesce(name, 'school')), '[^a-z0-9]+', '-', 'g')) || '-' || left(replace(id::text, '-', ''), 8)
+)
+where slug is null or btrim(slug) = '';
+
+alter table public.schools
+alter column slug set not null;
+
 create table if not exists public.users (
   id uuid primary key references auth.users(id) on delete cascade,
   school_id uuid not null references public.schools(id) on delete cascade,
@@ -303,7 +346,9 @@ stable
 security definer
 set search_path = public
 as $$
-  select role from public.users where id = auth.uid() and is_active = true;
+  select role::text::public.app_role
+  from public.users
+  where id = auth.uid() and is_active = true;
 $$;
 
 create or replace function public.current_school_id()

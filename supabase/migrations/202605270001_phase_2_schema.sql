@@ -66,6 +66,73 @@ create table if not exists public.schools (
   constraint schools_email_format check (email is null or email ~* '^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$')
 );
 
+alter table if exists public.schools
+  add column if not exists name text,
+  add column if not exists slug text,
+  add column if not exists motto text,
+  add column if not exists logo_url text,
+  add column if not exists seal_url text,
+  add column if not exists headmaster_signature_url text,
+  add column if not exists registrar_signature_url text,
+  add column if not exists email text,
+  add column if not exists phone text,
+  add column if not exists website text,
+  add column if not exists address_line_1 text,
+  add column if not exists address_line_2 text,
+  add column if not exists city text,
+  add column if not exists state text,
+  add column if not exists country text,
+  add column if not exists subscription_status public.subscription_status,
+  add column if not exists subscription_plan text,
+  add column if not exists subscription_started_at timestamptz,
+  add column if not exists subscription_ends_at timestamptz,
+  add column if not exists metadata jsonb,
+  add column if not exists created_at timestamptz,
+  add column if not exists updated_at timestamptz;
+
+alter table public.schools
+add column if not exists slug text;
+
+alter table if exists public.schools
+add column if not exists subscription_status public.subscription_status not null default 'trialing',
+add column if not exists subscription_plan text not null default 'starter',
+add column if not exists subscription_started_at timestamptz,
+add column if not exists subscription_ends_at timestamptz,
+add column if not exists metadata jsonb not null default '{}'::jsonb,
+add column if not exists created_at timestamptz not null default now(),
+add column if not exists updated_at timestamptz not null default now();
+
+update public.schools
+set
+  subscription_status = coalesce(subscription_status, 'trialing'::public.subscription_status),
+  subscription_plan = coalesce(subscription_plan, 'starter'),
+  metadata = coalesce(metadata, '{}'::jsonb),
+  created_at = coalesce(created_at, now()),
+  updated_at = coalesce(updated_at, now())
+where
+  subscription_status is null
+  or subscription_plan is null
+  or metadata is null
+  or created_at is null
+  or updated_at is null;
+
+alter table public.schools
+  alter column subscription_status set not null,
+  alter column subscription_plan set not null,
+  alter column metadata set not null,
+  alter column created_at set not null,
+  alter column updated_at set not null;
+
+update public.schools
+set slug = coalesce(
+  nullif(btrim(slug), ''),
+  trim(both '-' from regexp_replace(lower(coalesce(name, 'school')), '[^a-z0-9]+', '-', 'g')) || '-' || left(replace(id::text, '-', ''), 8)
+)
+where slug is null or btrim(slug) = '';
+
+alter table public.schools
+alter column slug set not null;
+
 create table if not exists public.users (
   id uuid primary key references auth.users(id) on delete cascade,
   school_id uuid not null references public.schools(id) on delete cascade,
@@ -80,6 +147,35 @@ create table if not exists public.users (
   updated_at timestamptz not null default now(),
   constraint users_email_format check (email is null or email ~* '^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$')
 );
+
+alter table if exists public.users
+  add column if not exists school_id uuid,
+  add column if not exists role public.app_role,
+  add column if not exists full_name text,
+  add column if not exists email text,
+  add column if not exists phone text,
+  add column if not exists avatar_url text,
+  add column if not exists is_active boolean,
+  add column if not exists metadata jsonb,
+  add column if not exists created_at timestamptz,
+  add column if not exists updated_at timestamptz;
+
+do $$
+declare
+  role_udt text;
+begin
+  select udt_name
+  into role_udt
+  from information_schema.columns
+  where table_schema = 'public'
+    and table_name = 'users'
+    and column_name = 'role';
+
+  if role_udt = 'app_role' then
+    execute 'alter table public.users alter column role set default ''teacher''::public.app_role';
+  end if;
+end;
+$$;
 
 create table if not exists public.classes (
   id uuid primary key default gen_random_uuid(),
@@ -96,6 +192,18 @@ create table if not exists public.classes (
   constraint classes_academic_year_format check (academic_year ~ '^[0-9]{4}/[0-9]{4}$')
 );
 
+alter table if exists public.classes
+  add column if not exists school_id uuid,
+  add column if not exists name text,
+  add column if not exists level text,
+  add column if not exists arm text,
+  add column if not exists academic_year text,
+  add column if not exists teacher_id uuid,
+  add column if not exists is_active boolean,
+  add column if not exists metadata jsonb,
+  add column if not exists created_at timestamptz,
+  add column if not exists updated_at timestamptz;
+
 create table if not exists public.subjects (
   id uuid primary key default gen_random_uuid(),
   school_id uuid not null references public.schools(id) on delete cascade,
@@ -109,6 +217,16 @@ create table if not exists public.subjects (
   constraint subjects_code_format check (code ~ '^[A-Z0-9_-]{2,20}$')
 );
 
+alter table if exists public.subjects
+  add column if not exists school_id uuid,
+  add column if not exists name text,
+  add column if not exists code text,
+  add column if not exists description text,
+  add column if not exists is_active boolean,
+  add column if not exists metadata jsonb,
+  add column if not exists created_at timestamptz,
+  add column if not exists updated_at timestamptz;
+
 create table if not exists public.class_subjects (
   id uuid primary key default gen_random_uuid(),
   school_id uuid not null references public.schools(id) on delete cascade,
@@ -119,6 +237,15 @@ create table if not exists public.class_subjects (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+alter table if exists public.class_subjects
+  add column if not exists school_id uuid,
+  add column if not exists class_id uuid,
+  add column if not exists subject_id uuid,
+  add column if not exists teacher_id uuid,
+  add column if not exists is_active boolean,
+  add column if not exists created_at timestamptz,
+  add column if not exists updated_at timestamptz;
 
 create table if not exists public.students (
   id uuid primary key default gen_random_uuid(),
@@ -147,6 +274,29 @@ create table if not exists public.students (
   constraint students_parent_email_format check (parent_email is null or parent_email ~* '^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$')
 );
 
+alter table if exists public.students
+  add column if not exists school_id uuid,
+  add column if not exists class_id uuid,
+  add column if not exists permanent_code text,
+  add column if not exists admission_number text,
+  add column if not exists first_name text,
+  add column if not exists middle_name text,
+  add column if not exists last_name text,
+  add column if not exists gender text,
+  add column if not exists date_of_birth date,
+  add column if not exists parent_full_name text,
+  add column if not exists parent_email text,
+  add column if not exists parent_phone text,
+  add column if not exists parent_alt_phone text,
+  add column if not exists parent_relationship text,
+  add column if not exists address text,
+  add column if not exists is_active boolean,
+  add column if not exists enrolled_at date,
+  add column if not exists graduated_at date,
+  add column if not exists metadata jsonb,
+  add column if not exists created_at timestamptz,
+  add column if not exists updated_at timestamptz;
+
 create table if not exists public.result_uploads (
   id uuid primary key default gen_random_uuid(),
   school_id uuid not null references public.schools(id) on delete cascade,
@@ -170,6 +320,26 @@ create table if not exists public.result_uploads (
   constraint result_uploads_academic_year_format check (academic_year ~ '^[0-9]{4}/[0-9]{4}$'),
   constraint result_uploads_row_counts_check check (total_rows >= 0 and valid_rows >= 0 and invalid_rows >= 0)
 );
+
+alter table if exists public.result_uploads
+  add column if not exists school_id uuid,
+  add column if not exists class_id uuid,
+  add column if not exists term public.school_term,
+  add column if not exists academic_year text,
+  add column if not exists status public.upload_status,
+  add column if not exists source_filename text,
+  add column if not exists total_rows integer,
+  add column if not exists valid_rows integer,
+  add column if not exists invalid_rows integer,
+  add column if not exists validation_errors jsonb,
+  add column if not exists uploaded_by uuid,
+  add column if not exists validated_by uuid,
+  add column if not exists published_by uuid,
+  add column if not exists validated_at timestamptz,
+  add column if not exists published_at timestamptz,
+  add column if not exists metadata jsonb,
+  add column if not exists created_at timestamptz,
+  add column if not exists updated_at timestamptz;
 
 create table if not exists public.results (
   id uuid primary key default gen_random_uuid(),
@@ -206,6 +376,30 @@ create table if not exists public.results (
   )
 );
 
+alter table if exists public.results
+  add column if not exists school_id uuid,
+  add column if not exists upload_id uuid,
+  add column if not exists student_id uuid,
+  add column if not exists class_id uuid,
+  add column if not exists subject_id uuid,
+  add column if not exists term public.school_term,
+  add column if not exists academic_year text,
+  add column if not exists continuous_assessment numeric(5,2),
+  add column if not exists exam_score numeric(5,2),
+  add column if not exists total_score numeric(5,2),
+  add column if not exists grade text,
+  add column if not exists remark text,
+  add column if not exists position_in_subject integer,
+  add column if not exists is_published boolean,
+  add column if not exists published_by uuid,
+  add column if not exists published_at timestamptz,
+  add column if not exists edited_by uuid,
+  add column if not exists edited_at timestamptz,
+  add column if not exists edit_count integer,
+  add column if not exists metadata jsonb,
+  add column if not exists created_at timestamptz,
+  add column if not exists updated_at timestamptz;
+
 create table if not exists public.code_term_access (
   id uuid primary key default gen_random_uuid(),
   school_id uuid not null references public.schools(id) on delete cascade,
@@ -226,6 +420,22 @@ create table if not exists public.code_term_access (
   constraint code_term_access_uses_check check (max_uses is null or max_uses > 0)
 );
 
+alter table if exists public.code_term_access
+  add column if not exists school_id uuid,
+  add column if not exists student_id uuid,
+  add column if not exists result_code text,
+  add column if not exists term public.school_term,
+  add column if not exists academic_year text,
+  add column if not exists is_active boolean,
+  add column if not exists max_uses integer,
+  add column if not exists use_count integer,
+  add column if not exists expires_at timestamptz,
+  add column if not exists last_used_at timestamptz,
+  add column if not exists metadata jsonb,
+  add column if not exists created_by uuid,
+  add column if not exists created_at timestamptz,
+  add column if not exists updated_at timestamptz;
+
 create table if not exists public.audit_logs (
   id uuid primary key default gen_random_uuid(),
   school_id uuid references public.schools(id) on delete cascade,
@@ -239,6 +449,18 @@ create table if not exists public.audit_logs (
   user_agent text,
   created_at timestamptz not null default now()
 );
+
+alter table if exists public.audit_logs
+  add column if not exists school_id uuid,
+  add column if not exists actor_id uuid,
+  add column if not exists actor_role public.app_role,
+  add column if not exists action public.audit_action,
+  add column if not exists table_name text,
+  add column if not exists record_id uuid,
+  add column if not exists details jsonb,
+  add column if not exists ip_address inet,
+  add column if not exists user_agent text,
+  add column if not exists created_at timestamptz;
 
 create unique index if not exists schools_slug_key on public.schools (slug);
 create index if not exists schools_subscription_status_idx on public.schools (subscription_status);
@@ -303,7 +525,17 @@ stable
 security definer
 set search_path = public
 as $$
-  select role from public.users where id = auth.uid() and is_active = true;
+  select case lower(coalesce(u.role::text, 'teacher'))
+    when 'admin' then 'admin'::public.app_role
+    when 'headmaster' then 'headmaster'::public.app_role
+    when 'teacher' then 'teacher'::public.app_role
+    when 'parent' then 'parent'::public.app_role
+    else 'teacher'::public.app_role
+  end
+  from public.users u
+  where u.id = auth.uid()
+    and coalesce(u.is_active, true) = true
+  limit 1;
 $$;
 
 create or replace function public.current_school_id()

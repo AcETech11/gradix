@@ -58,6 +58,9 @@ begin
 end;
 $$;
 
+drop trigger if exists registration_rate_limits_set_updated_at
+on public.registration_rate_limits;
+
 create trigger registration_rate_limits_set_updated_at
 before update on public.registration_rate_limits
 for each row execute function public.touch_registration_rate_limits_updated_at();

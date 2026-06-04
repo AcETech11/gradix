@@ -1,0 +1,307 @@
+"use server";
+
+import { revalidatePath } from "next/cache";
+import type { ZodError } from "zod";
+
+import { requireRole } from "@/lib/auth/session";
+import { createClient } from "@/lib/supabase/server";
+import { getAuthErrorMessage } from "@/lib/auth/errors";
+import { studentFormSchema, studentImportRowsSchema, type StudentFormInput, type StudentImportRowsInput } from "@/lib/students/schema";
+import { STUDENT_PASSPORT_BUCKET } from "@/lib/students/storage";
+import { toStudentWritePayload } from "@/lib/students/data";
+import type { AuthActionState } from "@/types/auth";
+
+function mapZodErrors(error: ZodError) {
+  return error.issues.reduce<Record<string, string[]>>((accumulator, issue) => {
+    const field = issue.path.map((part) => String(part)).join(".");
+
+    if (!accumulator[field]) {
+      accumulator[field] = [];
+    }
+
+    accumulator[field].push(issue.message);
+    return accumulator;
+  }, {});
+}
+
+function buildFieldErrorState(message: string, errors: Record<string, string[]>) {
+  return {
+    ok: false,
+    message,
+    fieldErrors: errors,
+  } satisfies AuthActionState;
+}
+
+function normalizeGeneralError(error: unknown) {
+  if (error instanceof Error) {
+    return getAuthErrorMessage(error.message);
+  }
+
+  return "Something went wrong while saving the student.";
+}
+
+async function ensureStudentAccess() {
+  return requireRole(["admin", "teacher"]);
+}
+
+export async function createStudentAction(input: StudentFormInput): Promise<AuthActionState<{ studentId: string; studentCode: string; redirectTo: string }>> {
+  const parsed = studentFormSchema.safeParse(input);
+
+  if (!parsed.success) {
+    return buildFieldErrorState("Check the highlighted fields and try again.", mapZodErrors(parsed.error));
+  }
+
+  try {
+    const profile = await ensureStudentAccess();
+    const supabase = await createClient();
+
+    const { data, error } = await supabase
+      .from("students")
+      .insert(toStudentWritePayload(parsed.data, profile.school_id))
+      .select("id, permanent_code")
+      .single();
+
+    if (error) {
+      throw error;
+    }
+
+    revalidatePath("/dashboard/students");
+    revalidatePath(`/dashboard/students/${data.id}`);
+
+    return {
+      ok: true,
+      message: "Student created successfully.",
+      data: {
+        studentId: data.id,
+        studentCode: data.permanent_code,
+        redirectTo: `/dashboard/students/${data.id}`,
+      },
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      message: normalizeGeneralError(error),
+    };
+  }
+}
+
+export async function updateStudentAction(
+  studentId: string,
+  input: StudentFormInput,
+): Promise<AuthActionState<{ studentId: string; redirectTo: string }>> {
+  const parsed = studentFormSchema.safeParse(input);
+
+  if (!parsed.success) {
+    return buildFieldErrorState("Check the highlighted fields and try again.", mapZodErrors(parsed.error));
+  }
+
+  try {
+    const profile = await ensureStudentAccess();
+    const supabase = await createClient();
+
+    const { data, error } = await supabase
+      .from("students")
+      .update(toStudentWritePayload(parsed.data, profile.school_id))
+      .eq("id", studentId)
+      .eq("school_id", profile.school_id)
+      .select("id, permanent_code")
+      .single();
+
+    if (error) {
+      throw error;
+    }
+
+    revalidatePath("/dashboard/students");
+    revalidatePath(`/dashboard/students/${data.id}`);
+    revalidatePath(`/dashboard/students/${data.id}/edit`);
+
+    return {
+      ok: true,
+      message: "Student updated successfully.",
+      data: {
+        studentId: data.id,
+        redirectTo: `/dashboard/students/${data.id}`,
+      },
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      message: normalizeGeneralError(error),
+    };
+  }
+}
+
+export async function archiveStudentAction(studentId: string): Promise<AuthActionState<{ studentId: string }>> {
+  try {
+    const profile = await ensureStudentAccess();
+    const supabase = await createClient();
+
+    const { error } = await supabase
+      .from("students")
+      .update({
+        school_id: profile.school_id,
+        status: "archived",
+        is_active: false,
+        graduated_at: null,
+      })
+      .eq("id", studentId)
+      .eq("school_id", profile.school_id);
+
+    if (error) {
+      throw error;
+    }
+
+    revalidatePath("/dashboard/students");
+    revalidatePath(`/dashboard/students/${studentId}`);
+
+    return {
+      ok: true,
+      message: "Student archived successfully.",
+      data: { studentId },
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      message: normalizeGeneralError(error),
+    };
+  }
+}
+
+export async function importStudentsAction(
+  input: StudentImportRowsInput,
+): Promise<
+  AuthActionState<{
+    imported: number;
+    skipped: number;
+    redirectTo: string;
+  }>
+> {
+  const parsed = studentImportRowsSchema.safeParse(input);
+
+  if (!parsed.success) {
+    return buildFieldErrorState("Review the import file and try again.", mapZodErrors(parsed.error));
+  }
+
+  try {
+    const profile = await ensureStudentAccess();
+    const supabase = await createClient();
+
+    const [classesResult, existingStudentsResult] = await Promise.all([
+      supabase.from("classes").select("id, name").eq("school_id", profile.school_id),
+      supabase
+        .from("students")
+        .select("id, admission_number, permanent_code")
+        .eq("school_id", profile.school_id),
+    ]);
+
+    if (classesResult.error) {
+      throw classesResult.error;
+    }
+
+    if (existingStudentsResult.error) {
+      throw existingStudentsResult.error;
+    }
+
+    const classMap = new Map((classesResult.data ?? []).map((classRecord) => [classRecord.name.trim().toLowerCase(), classRecord.id]));
+    const existingAdmissionNumbers = new Set(
+      (existingStudentsResult.data ?? [])
+        .map((student) => student.admission_number?.trim().toLowerCase())
+        .filter((value): value is string => Boolean(value)),
+    );
+    const existingStudentCodes = new Set(
+      (existingStudentsResult.data ?? [])
+        .map((student) => student.permanent_code?.trim().toLowerCase())
+        .filter((value): value is string => Boolean(value)),
+    );
+
+    const uniqueAdmissions = new Set<string>();
+    const uniqueStudentCodes = new Set<string>();
+    const normalizedRows = parsed.data.map((row, index) => {
+      const issues: string[] = [];
+      const admissionNumber = row.admissionNumber.trim();
+      const className = row.className.trim().toLowerCase();
+      const classId = classMap.get(className) ?? null;
+
+      if (!classId) {
+        issues.push(`Row ${index + 1}: class "${row.className}" was not found.`);
+      }
+
+      if (existingAdmissionNumbers.has(admissionNumber.toLowerCase()) || uniqueAdmissions.has(admissionNumber.toLowerCase())) {
+        issues.push(`Row ${index + 1}: duplicate admission number "${admissionNumber}".`);
+      }
+
+      uniqueAdmissions.add(admissionNumber.toLowerCase());
+
+      if (row.studentCode) {
+        const codeKey = row.studentCode.trim().toLowerCase();
+        if (existingStudentCodes.has(codeKey) || uniqueStudentCodes.has(codeKey)) {
+          issues.push(`Row ${index + 1}: duplicate student code "${row.studentCode}".`);
+        }
+
+        uniqueStudentCodes.add(codeKey);
+      }
+
+      return {
+        ...row,
+        classId,
+        issues,
+      };
+    });
+
+    const validRows = normalizedRows.filter((row) => row.classId && row.issues.length === 0);
+    const skipped = normalizedRows.length - validRows.length;
+
+    if (!validRows.length) {
+      return {
+        ok: false,
+        message: "No valid student rows were found in the import file.",
+      };
+    }
+
+    const { error } = await supabase
+      .from("students")
+      .insert(
+        validRows.map((row) => ({
+          school_id: profile.school_id,
+          class_id: row.classId as string,
+          first_name: row.firstName.trim(),
+          ...(row.studentCode.trim() ? { permanent_code: row.studentCode.trim() } : {}),
+          middle_name: null,
+          last_name: row.lastName.trim(),
+          gender: row.gender,
+          parent_full_name: row.parentName.trim(),
+          parent_phone: row.parentPhone.trim(),
+          admission_number: row.admissionNumber.trim(),
+          status: "active",
+          is_active: true,
+          metadata: {
+            source: "bulk_import",
+            imported_at: new Date().toISOString(),
+          },
+        })),
+      );
+
+    if (error) {
+      throw error;
+    }
+
+    revalidatePath("/dashboard/students");
+
+    return {
+      ok: true,
+      message: "Students imported successfully.",
+      data: {
+        imported: validRows.length,
+        skipped,
+        redirectTo: "/dashboard/students",
+      },
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      message: normalizeGeneralError(error),
+    };
+  }
+}
+
+export { STUDENT_PASSPORT_BUCKET };

@@ -9,6 +9,18 @@ export function getAuthErrorMessage(message: string) {
     return "That email is already registered. Use a different one or sign in.";
   }
 
+  if (normalized.includes("duplicate key value violates unique constraint")) {
+    if (normalized.includes("students_school_admission_key")) {
+      return "A student with that admission number already exists.";
+    }
+
+    if (normalized.includes("students_school_code_key")) {
+      return "A student with that code already exists.";
+    }
+
+    return "A record with one of those unique values already exists.";
+  }
+
   if (normalized.includes("email not confirmed")) {
     return "Confirm your email before signing in.";
   }

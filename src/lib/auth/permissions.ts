@@ -20,12 +20,11 @@ export const ROLE_PERMISSIONS: Record<AuthRole, AuthPermission[]> = {
   headmaster: [
     "dashboard:view",
     "classes:manage",
-    "students:manage",
     "results:edit",
     "results:publish",
     "audit_logs:view",
   ],
-  teacher: ["dashboard:view", "results:edit"],
+  teacher: ["dashboard:view", "results:edit", "students:manage"],
 };
 
 export function isDashboardRole(role: string | null | undefined): role is AuthRole {
