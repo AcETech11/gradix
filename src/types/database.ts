@@ -150,9 +150,12 @@ export type Database = {
           id: string;
           school_id: string;
           class_id: string;
+          class_name: string;
+          subject: string;
           term: SchoolTerm;
           academic_year: string;
           status: UploadStatus;
+          file_name: string;
           source_filename: string | null;
           total_rows: number;
           valid_rows: number;

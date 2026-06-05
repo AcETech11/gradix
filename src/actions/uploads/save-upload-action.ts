@@ -1,0 +1,151 @@
+"use server";
+
+import { revalidatePath } from "next/cache";
+
+import { getValidationContext } from "@/lib/uploads/data";
+import { uploadValidationSchema, type SaveUploadState } from "@/lib/uploads/upload-types";
+import { getSavableRows, validateResultUpload } from "@/lib/uploads/validate-result-upload";
+import type { UploadStatus } from "@/types/database";
+
+export async function saveUploadAction(input: unknown): Promise<SaveUploadState> {
+  const parsed = uploadValidationSchema.safeParse(input);
+
+  if (!parsed.success) {
+    return {
+      ok: false,
+      message: "Check the upload options and try again.",
+      fieldErrors: parsed.error.flatten().fieldErrors,
+    };
+  }
+
+  try {
+    const context = await getValidationContext(parsed.data.classId, parsed.data.term, parsed.data.academicYear);
+    const validation = validateResultUpload({
+      fileBase64: parsed.data.fileBase64,
+      className: context.schoolClass.name,
+      term: parsed.data.term,
+      academicYear: parsed.data.academicYear,
+      duplicateStrategy: parsed.data.duplicateStrategy,
+      students: context.students,
+      subjects: context.subjects,
+      existingResults: context.existingResults,
+    });
+
+    if (validation.summary.invalidRows > 0) {
+      return {
+        ok: false,
+        message: "Fix invalid rows before saving this upload.",
+      };
+    }
+
+    const rows = getSavableRows(validation);
+    const rowsToInsert = rows.filter((row) => !row.isExistingDuplicate);
+    const rowsToReplace = parsed.data.duplicateStrategy === "replace" ? rows.filter((row) => row.isExistingDuplicate) : [];
+    const skippedRows = parsed.data.duplicateStrategy === "skip" ? rows.filter((row) => row.isExistingDuplicate).length : 0;
+    const uploadStatus: UploadStatus = context.profile.role === "teacher" ? "draft" : "validated";
+    const subjectSummary = context.subjects.map((subject) => subject.name).join(", ");
+    const uploadPayload = {
+      school_id: context.profile.school_id,
+      class_id: parsed.data.classId,
+      class_name: context.schoolClass.name,
+      subject: subjectSummary,
+      term: parsed.data.term,
+      academic_year: parsed.data.academicYear,
+      status: uploadStatus,
+      file_name: parsed.data.fileName,
+      source_filename: parsed.data.fileName,
+      total_rows: validation.summary.totalRows,
+      valid_rows: rows.length,
+      invalid_rows: 0,
+      validation_errors: validation.summary.messages,
+      uploaded_by: context.profile.id,
+      validated_by: uploadStatus === "validated" ? context.profile.id : null,
+      validated_at: uploadStatus === "validated" ? new Date().toISOString() : null,
+      metadata: {
+        duplicate_strategy: parsed.data.duplicateStrategy,
+        duplicate_skipped: skippedRows,
+        duplicate_replaced: rowsToReplace.length,
+      },
+    };
+    const { data: upload, error: uploadError } = await context.supabase
+      .from("result_uploads")
+      .insert(uploadPayload)
+      .select("id")
+      .single();
+
+    if (uploadError || !upload) {
+      return {
+        ok: false,
+        message: uploadError?.message ?? "The upload record could not be created.",
+      };
+    }
+
+    if (rowsToInsert.length > 0) {
+      const { error } = await context.supabase.from("results").insert(
+        rowsToInsert.map((row) => ({
+          school_id: context.profile.school_id,
+          upload_id: upload.id,
+          student_id: row.studentId as string,
+          class_id: parsed.data.classId,
+          subject_id: row.subjectId as string,
+          term: parsed.data.term,
+          academic_year: parsed.data.academicYear,
+          continuous_assessment: row.ca ?? 0,
+          exam_score: row.exam ?? 0,
+          grade: row.grade,
+          remark: row.remark || null,
+          is_published: false,
+        })),
+      );
+
+      if (error) {
+        return {
+          ok: false,
+          message: error.message,
+        };
+      }
+    }
+
+    for (const row of rowsToReplace) {
+      const { error } = await context.supabase
+        .from("results")
+        .update({
+          upload_id: upload.id,
+          continuous_assessment: row.ca ?? 0,
+          exam_score: row.exam ?? 0,
+          grade: row.grade,
+          remark: row.remark || null,
+          is_published: false,
+        })
+        .eq("school_id", context.profile.school_id)
+        .eq("student_id", row.studentId as string)
+        .eq("subject_id", row.subjectId as string)
+        .eq("term", parsed.data.term)
+        .eq("academic_year", parsed.data.academicYear)
+        .eq("is_published", false);
+
+      if (error) {
+        return {
+          ok: false,
+          message: error.message,
+        };
+      }
+    }
+
+    revalidatePath("/dashboard/uploads");
+
+    return {
+      ok: true,
+      message: uploadStatus === "validated" ? "Upload saved and validated." : "Upload saved as draft.",
+      uploadId: upload.id,
+      insertedRows: rowsToInsert.length,
+      replacedRows: rowsToReplace.length,
+      skippedRows,
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      message: error instanceof Error ? error.message : "The upload could not be saved.",
+    };
+  }
+}
