@@ -8,11 +8,19 @@ import { isDashboardRole } from "@/lib/auth/permissions";
 export default async function DashboardRouteLayout({ children }: { children: ReactNode }) {
   const profile = await getCurrentUserProfile();
 
-  if (!profile || !isDashboardRole(profile.role)) {
-    redirect("/login?error=account");
+  if (!profile) {
+    redirect("/login?error=profile_missing");
+  }
+
+  if (!isDashboardRole(profile.role)) {
+    redirect("/login?error=invalid_role");
   }
 
   const school = await getCurrentSchool();
+
+  if (!school) {
+    redirect("/login?error=school_missing");
+  }
 
   return <DashboardLayout profile={profile} school={school}>{children}</DashboardLayout>;
 }

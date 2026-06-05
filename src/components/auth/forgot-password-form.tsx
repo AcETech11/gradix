@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuthResult } from "@/hooks/use-auth-result";
+import { logAuthDebug, logAuthError } from "@/lib/auth/debug";
 import { forgotPasswordSchema, type ForgotPasswordFormValues, type ForgotPasswordInput } from "@/lib/auth/validation";
 
 export function ForgotPasswordForm() {
@@ -27,14 +28,35 @@ export function ForgotPasswordForm() {
   });
 
   function onSubmit(values: ForgotPasswordInput) {
+    logAuthDebug("forgot password submit valid", { email: values.email });
     setResult(null);
     startTransition(async () => {
-      setResult(await forgotPasswordAction(values));
+      try {
+        logAuthDebug("forgot password action start", { email: values.email });
+        const response = await forgotPasswordAction(values);
+        logAuthDebug("forgot password action response", {
+          ok: response.ok,
+          message: response.message,
+        });
+        setResult(response);
+      } catch (error) {
+        logAuthError("forgot password action threw", error);
+        setResult({
+          ok: false,
+          message: "Password reset could not be started. Check your connection and try again.",
+        });
+      }
+    });
+  }
+
+  function onInvalid(fieldErrors: unknown) {
+    logAuthDebug("forgot password submit invalid", {
+      fields: Object.keys(fieldErrors as Record<string, unknown>),
     });
   }
 
   return (
-    <form className="space-y-5" onSubmit={handleSubmit(onSubmit)}>
+    <form className="space-y-5" onSubmit={handleSubmit(onSubmit, onInvalid)}>
       {result ? (
         <div
           className={
@@ -56,7 +78,12 @@ export function ForgotPasswordForm() {
         {errors.email ? <p className="text-sm text-red-600">{errors.email.message}</p> : null}
       </div>
 
-      <Button className="h-11 w-full bg-orange-600 text-white shadow-lg shadow-orange-950/20 hover:bg-orange-700" disabled={isPending}>
+      <Button
+        type="submit"
+        className="h-11 w-full bg-orange-600 text-white shadow-lg shadow-orange-950/20 hover:bg-orange-700"
+        disabled={isPending}
+        onClick={() => logAuthDebug("forgot password button clicked", { disabled: isPending })}
+      >
         {isPending ? <AuthSpinner label="Sending link" /> : "Send reset link"}
       </Button>
 

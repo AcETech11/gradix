@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuthResult } from "@/hooks/use-auth-result";
+import { logAuthDebug, logAuthError } from "@/lib/auth/debug";
 import { resendVerificationSchema, type ResendVerificationInput } from "@/lib/registration/schema";
 
 type VerifyEmailViewProps = {
@@ -33,20 +34,41 @@ export function VerifyEmailView({ email, initialError }: VerifyEmailViewProps) {
   });
 
   function onSubmit(values: ResendVerificationInput) {
+    logAuthDebug("resend verification submit valid", { schoolEmail: values.schoolEmail });
     setResult(null);
     startTransition(async () => {
-      const response = await resendVerificationAction(values);
-      setResult(response);
-      if (response.ok) {
-        router.refresh();
+      try {
+        logAuthDebug("resend verification action start", { schoolEmail: values.schoolEmail });
+        const response = await resendVerificationAction(values);
+        logAuthDebug("resend verification action response", {
+          ok: response.ok,
+          message: response.message,
+        });
+        setResult(response);
+        if (response.ok) {
+          logAuthDebug("resend verification refresh start");
+          router.refresh();
+        }
+      } catch (error) {
+        logAuthError("resend verification action threw", error);
+        setResult({
+          ok: false,
+          message: "Verification email could not be sent. Check your connection and try again.",
+        });
       }
+    });
+  }
+
+  function onInvalid(fieldErrors: unknown) {
+    logAuthDebug("resend verification submit invalid", {
+      fields: Object.keys(fieldErrors as Record<string, unknown>),
     });
   }
 
   const message = result?.message ?? initialError;
 
   return (
-    <form className="space-y-5" onSubmit={handleSubmit(onSubmit)}>
+    <form className="space-y-5" onSubmit={handleSubmit(onSubmit, onInvalid)}>
       {message ? (
         <div
           className={
@@ -72,7 +94,12 @@ export function VerifyEmailView({ email, initialError }: VerifyEmailViewProps) {
         {errors.schoolEmail ? <p className="text-sm text-red-600">{errors.schoolEmail.message}</p> : null}
       </div>
 
-      <Button className="h-11 w-full bg-orange-600 text-white shadow-lg shadow-orange-950/20 hover:bg-orange-700" disabled={isPending}>
+      <Button
+        type="submit"
+        className="h-11 w-full bg-orange-600 text-white shadow-lg shadow-orange-950/20 hover:bg-orange-700"
+        disabled={isPending}
+        onClick={() => logAuthDebug("resend verification button clicked", { disabled: isPending })}
+      >
         {isPending ? <AuthSpinner label="Resending link" /> : "Resend verification email"}
       </Button>
     </form>

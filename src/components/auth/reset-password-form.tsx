@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuthResult } from "@/hooks/use-auth-result";
+import { logAuthDebug, logAuthError } from "@/lib/auth/debug";
 import { usePasswordVisibility } from "@/hooks/use-password-visibility";
 import { resetPasswordSchema, type ResetPasswordFormValues, type ResetPasswordInput } from "@/lib/auth/validation";
 
@@ -32,20 +33,45 @@ export function ResetPasswordForm() {
   });
 
   function onSubmit(values: ResetPasswordInput) {
+    logAuthDebug("reset password submit valid", {
+      passwordLength: values.password.length,
+      confirmPasswordLength: values.confirmPassword.length,
+    });
     setResult(null);
     startTransition(async () => {
-      const response = await resetPasswordAction(values);
-      setResult(response);
+      try {
+        logAuthDebug("reset password action start");
+        const response = await resetPasswordAction(values);
+        logAuthDebug("reset password action response", {
+          ok: response.ok,
+          message: response.message,
+          redirectTo: response.data?.redirectTo ?? null,
+        });
+        setResult(response);
 
-      if (response.ok && response.data?.redirectTo) {
-        router.replace(response.data.redirectTo);
-        router.refresh();
+        if (response.ok && response.data?.redirectTo) {
+          logAuthDebug("reset password redirect start", { redirectTo: response.data.redirectTo });
+          router.replace(response.data.redirectTo);
+          router.refresh();
+        }
+      } catch (error) {
+        logAuthError("reset password action threw", error);
+        setResult({
+          ok: false,
+          message: "Password reset could not be completed. Check your connection and try again.",
+        });
       }
     });
   }
 
+  function onInvalid(fieldErrors: unknown) {
+    logAuthDebug("reset password submit invalid", {
+      fields: Object.keys(fieldErrors as Record<string, unknown>),
+    });
+  }
+
   return (
-    <form className="space-y-5" onSubmit={handleSubmit(onSubmit)}>
+    <form className="space-y-5" onSubmit={handleSubmit(onSubmit, onInvalid)}>
       {result ? (
         <div
           className={
@@ -108,7 +134,12 @@ export function ResetPasswordForm() {
         {errors.confirmPassword ? <p className="text-sm text-red-600">{errors.confirmPassword.message}</p> : null}
       </div>
 
-      <Button className="h-11 w-full bg-orange-600 text-white shadow-lg shadow-orange-950/20 hover:bg-orange-700" disabled={isPending}>
+      <Button
+        type="submit"
+        className="h-11 w-full bg-orange-600 text-white shadow-lg shadow-orange-950/20 hover:bg-orange-700"
+        disabled={isPending}
+        onClick={() => logAuthDebug("reset password button clicked", { disabled: isPending })}
+      >
         {isPending ? <AuthSpinner label="Updating password" /> : "Update password"}
       </Button>
     </form>

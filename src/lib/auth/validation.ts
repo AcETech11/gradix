@@ -4,7 +4,7 @@ export const loginSchema = z.object({
   email: z.string().trim().email("Enter a valid email address."),
   password: z.string().min(1, "Enter your password."),
   rememberSession: z.boolean().default(true),
-  redirectTo: z.string().startsWith("/").optional(),
+  redirectTo: z.preprocess((value) => (value === "" ? undefined : value), z.string().startsWith("/").optional()),
 });
 
 export const forgotPasswordSchema = z.object({

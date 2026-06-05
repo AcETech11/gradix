@@ -3,8 +3,8 @@
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 
-import { getAuthErrorMessage, isBlockedProfile } from "@/lib/auth/errors";
-import { getRoleHomePath, isDashboardRole } from "@/lib/auth/permissions";
+import { getAuthErrorMessage } from "@/lib/auth/errors";
+import { isDashboardRole } from "@/lib/auth/permissions";
 import { getSafeRedirectPath } from "@/lib/auth/redirects";
 import { forgotPasswordSchema, loginSchema, resetPasswordSchema } from "@/lib/auth/validation";
 import { createClient } from "@/lib/supabase/server";
@@ -35,6 +35,21 @@ async function getRequestOrigin() {
   return host ? `${protocol}://${host}` : "http://localhost:3000";
 }
 
+function isOnboardingComplete(metadata: unknown) {
+  return Boolean(
+    metadata &&
+      typeof metadata === "object" &&
+      !Array.isArray(metadata) &&
+      (metadata as Record<string, unknown>).onboarding_completed === true,
+  );
+}
+
+function logAuthDebug(message: string, details: Record<string, unknown>) {
+  if (process.env.NODE_ENV !== "production") {
+    console.log(`[gradix-auth] ${message}`, details);
+  }
+}
+
 export async function loginAction(input: unknown): Promise<AuthActionState<LoginRedirect>> {
   const parsed = loginSchema.safeParse(input);
 
@@ -42,86 +57,173 @@ export async function loginAction(input: unknown): Promise<AuthActionState<Login
     return validationErrorState("Check the highlighted fields and try again.", parsed.error.flatten().fieldErrors);
   }
 
-  const supabase = await createClient();
-  const { email, password, rememberSession } = parsed.data;
-  const { error } = await supabase.auth.signInWithPassword({
-    email,
-    password,
-  });
-
-  if (error) {
-    return {
-      ok: false,
-      message: getAuthErrorMessage(error.message),
-    };
-  }
-
-  const {
-    data: { user },
-    error: userError,
-  } = await supabase.auth.getUser();
-
-  if (userError || !user) {
-    return {
-      ok: false,
-      message: "Your session could not be verified. Try signing in again.",
-    };
-  }
-
-  const { data: profile, error: profileError } = await supabase
-    .from("users")
-    .select("role, is_active, metadata")
-    .eq("id", user.id)
-    .maybeSingle();
-
-  if (profileError || !profile) {
-    await supabase.auth.signOut();
-
-    return {
-      ok: false,
-      message: "Your account is not connected to a Gradix school yet.",
-    };
-  }
-
-  if (!profile.is_active || isBlockedProfile(profile.metadata)) {
-    await supabase.auth.signOut();
-
-    return {
-      ok: false,
-      message: "This account is inactive or blocked. Contact your school administrator.",
-    };
-  }
-
-  if (!isDashboardRole(profile.role)) {
-    await supabase.auth.signOut();
-
-    return {
-      ok: false,
-      message: "This account does not have dashboard access.",
-    };
-  }
-
-  const cookieStore = await cookies();
-
-  if (rememberSession) {
-    cookieStore.set("gradix_remember_session", "true", {
-      httpOnly: true,
-      sameSite: "lax",
-      secure: true,
-      path: "/",
-      maxAge: 60 * 60 * 24 * 365,
+  try {
+    const supabase = await createClient();
+    const { email, password, rememberSession } = parsed.data;
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
     });
-  } else {
-    cookieStore.delete("gradix_remember_session");
-  }
 
-  return {
-    ok: true,
-    message: "Signed in successfully.",
-    data: {
-      redirectTo: getSafeRedirectPath(parsed.data.redirectTo) ?? getRoleHomePath(profile.role),
-    },
-  };
+    if (error) {
+      return {
+        ok: false,
+        message: getAuthErrorMessage(error.message),
+      };
+    }
+
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
+
+    logAuthDebug("login auth user", {
+      authUserId: user?.id ?? null,
+      userError: userError?.message ?? null,
+    });
+
+    if (userError || !user) {
+      return {
+        ok: false,
+        message: "Your session could not be verified. Try signing in again.",
+      };
+    }
+
+    const { data: profile, error: profileError } = await supabase
+      .from("users")
+      .select("school_id, role, is_active, metadata")
+      .eq("id", user.id)
+      .maybeSingle();
+
+    logAuthDebug("login profile lookup", {
+      authUserId: user.id,
+      profileError: profileError?.message ?? null,
+      profileFound: Boolean(profile),
+      schoolId: profile?.school_id ?? null,
+      role: profile?.role ?? null,
+      isActive: profile?.is_active ?? null,
+    });
+
+    if (profileError) {
+      await supabase.auth.signOut();
+
+      return {
+        ok: false,
+        message: "We could not load your Gradix profile. Try again or contact support.",
+      };
+    }
+
+    if (!profile) {
+      await supabase.auth.signOut();
+
+      return {
+        ok: false,
+        message: "Your Gradix profile was not created.",
+      };
+    }
+
+    if (!profile.is_active) {
+      await supabase.auth.signOut();
+
+      return {
+        ok: false,
+        message: "Your account is inactive.",
+      };
+    }
+
+    if (!profile.role) {
+      await supabase.auth.signOut();
+
+      return {
+        ok: false,
+        message: "Your account role is not authorized.",
+      };
+    }
+
+    if (!isDashboardRole(profile.role)) {
+      await supabase.auth.signOut();
+
+      return {
+        ok: false,
+        message: "Your account role is not authorized.",
+      };
+    }
+
+    if (!profile.school_id) {
+      await supabase.auth.signOut();
+
+      return {
+        ok: false,
+        message: "Your school profile was not found.",
+      };
+    }
+
+    const { data: school, error: schoolError } = await supabase
+      .from("schools")
+      .select("id, metadata")
+      .eq("id", profile.school_id)
+      .maybeSingle();
+
+    logAuthDebug("login school lookup", {
+      authUserId: user.id,
+      schoolId: profile.school_id,
+      schoolError: schoolError?.message ?? null,
+      schoolFound: Boolean(school),
+      role: profile.role,
+      isActive: profile.is_active,
+    });
+
+    if (schoolError || !school) {
+      await supabase.auth.signOut();
+
+      return {
+        ok: false,
+        message: "Your school profile was not found.",
+      };
+    }
+
+    const cookieStore = await cookies();
+
+    if (rememberSession) {
+      cookieStore.set("gradix_remember_session", "true", {
+        httpOnly: true,
+        sameSite: "lax",
+        secure: process.env.NODE_ENV === "production",
+        path: "/",
+        maxAge: 60 * 60 * 24 * 365,
+      });
+    } else {
+      cookieStore.delete("gradix_remember_session");
+    }
+
+    const requestedRedirect = getSafeRedirectPath(parsed.data.redirectTo);
+    const redirectTo = isOnboardingComplete(school.metadata) ? (requestedRedirect ?? "/dashboard") : "/onboarding";
+
+    logAuthDebug("login redirect", {
+      authUserId: user.id,
+      schoolId: profile.school_id,
+      role: profile.role,
+      isActive: profile.is_active,
+      redirectTarget: redirectTo,
+    });
+
+    return {
+      ok: true,
+      message: "Signed in successfully.",
+      data: {
+        redirectTo,
+      },
+    };
+  } catch (error) {
+    if (process.env.NODE_ENV !== "production") {
+      console.error("Gradix login action failed", error);
+    }
+
+    return {
+      ok: false,
+      message: "Sign in could not be completed. Check your connection and try again.",
+    };
+  }
 }
 
 export async function forgotPasswordAction(input: unknown): Promise<AuthActionState> {

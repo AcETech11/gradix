@@ -147,9 +147,12 @@ declare
   current_email text;
   current_name text;
   current_phone text;
+  current_registration_type text;
   existing_profile public.users%rowtype;
+  existing_school public.schools%rowtype;
   school_id uuid;
   school_code text;
+  school_created boolean := false;
 begin
   if current_uid is null then
     raise exception 'You must be signed in to complete registration.';
@@ -158,8 +161,9 @@ begin
   select
     email,
     coalesce(raw_user_meta_data->>'full_name', raw_user_meta_data->>'name', ''),
-    raw_user_meta_data->>'phone'
-  into current_email, current_name, current_phone
+    raw_user_meta_data->>'phone',
+    coalesce(raw_user_meta_data->>'registration_type', 'school_owner')
+  into current_email, current_name, current_phone, current_registration_type
   from auth.users
   where id = current_uid;
 
@@ -173,15 +177,97 @@ begin
   limit 1;
 
   if existing_profile.id is not null then
+    select * into existing_school
+    from public.schools
+    where id = existing_profile.school_id
+    limit 1;
+
+    if existing_school.id is null then
+      select * into existing_school
+      from public.schools
+      where email = current_email or metadata->>'registration_email' = current_email
+      order by created_at asc
+      limit 1;
+
+      if existing_school.id is null then
+        school_code := public.generate_school_code();
+
+        insert into public.schools (
+          name,
+          slug,
+          school_code,
+          email,
+          phone,
+          country,
+          subscription_status,
+          subscription_plan,
+          metadata
+        )
+        values (
+          'New Gradix School',
+          lower(school_code),
+          school_code,
+          current_email,
+          current_phone,
+          'Nigeria',
+          'trialing',
+          'starter',
+          jsonb_build_object(
+            'onboarding_completed', false,
+            'registration_email', current_email,
+            'owner_full_name', current_name,
+            'owner_phone', current_phone,
+            'registration_type', current_registration_type
+          )
+        )
+        returning * into existing_school;
+
+        school_created := true;
+      end if;
+    end if;
+
+    update public.users
+    set
+      school_id = existing_school.id,
+      role = 'admin'::public.app_role,
+      full_name = coalesce(nullif(current_name, ''), current_email),
+      email = current_email,
+      phone = current_phone,
+      is_active = true,
+      metadata = jsonb_build_object(
+        'registration_email', current_email,
+        'registration_type', current_registration_type,
+        'is_school_owner', true,
+        'onboarding_completed', false
+      )
+    where id = current_uid;
+
+    update auth.users
+    set raw_user_meta_data = coalesce(raw_user_meta_data, '{}'::jsonb)
+      || jsonb_build_object(
+        'school_id', existing_school.id,
+        'school_code', existing_school.school_code,
+        'role', 'admin',
+        'registration_completed', true,
+        'registration_type', current_registration_type
+      )
+    where id = current_uid;
+
     return jsonb_build_object(
-      'school_id', existing_profile.school_id,
-      'school_code', (
-        select school_code from public.schools where id = existing_profile.school_id
-      ),
-      'created', false
+      'school_id', existing_school.id,
+      'school_code', existing_school.school_code,
+      'created', false,
+      'onboarding_completed', coalesce((existing_school.metadata->>'onboarding_completed')::boolean, false)
     );
   end if;
 
+  select * into existing_school
+  from public.schools
+  where email = current_email or metadata->>'registration_email' = current_email
+  order by created_at asc
+  limit 1;
+
+  if existing_school.id is null then
   school_code := public.generate_school_code();
 
   insert into public.schools (
@@ -208,10 +294,16 @@ begin
       'onboarding_completed', false,
       'registration_email', current_email,
       'owner_full_name', current_name,
-      'owner_phone', current_phone
+      'owner_phone', current_phone,
+      'registration_type', current_registration_type
     )
   )
-  returning id into school_id;
+  returning id, school_code into school_id, school_code;
+  school_created := true;
+  else
+    school_id := existing_school.id;
+    school_code := existing_school.school_code;
+  end if;
 
   insert into public.users (
     id,
@@ -231,10 +323,20 @@ begin
     current_phone,
     jsonb_build_object(
       'registration_email', current_email,
+      'registration_type', current_registration_type,
       'is_school_owner', true,
       'onboarding_completed', false
     )
-  );
+  )
+  on conflict (id) do update
+  set
+    school_id = excluded.school_id,
+    role = excluded.role,
+    full_name = excluded.full_name,
+    email = excluded.email,
+    phone = excluded.phone,
+    is_active = true,
+    metadata = excluded.metadata;
 
   update auth.users
   set raw_user_meta_data = coalesce(raw_user_meta_data, '{}'::jsonb)
@@ -243,13 +345,15 @@ begin
       'school_code', school_code,
       'role', 'admin',
       'registration_completed', true
+      , 'registration_type', current_registration_type
     )
   where id = current_uid;
 
   return jsonb_build_object(
     'school_id', school_id,
     'school_code', school_code,
-    'created', true
+    'created', school_created,
+    'onboarding_completed', false
   );
 end;
 $$;

@@ -646,9 +646,11 @@ security definer
 set search_path = public
 as $$
 begin
-  if tg_table_name = 'classes' and new.teacher_id is not null then
-    if not exists (select 1 from public.users where id = new.teacher_id and school_id = new.school_id) then
-      raise exception 'Class teacher must belong to the same school';
+  if tg_table_name = 'classes' then
+    if new.teacher_id is not null then
+      if not exists (select 1 from public.users where id = new.teacher_id and school_id = new.school_id) then
+        raise exception 'Class teacher must belong to the same school';
+      end if;
     end if;
   end if;
 
@@ -668,9 +670,11 @@ begin
     end if;
   end if;
 
-  if tg_table_name = 'students' and new.class_id is not null then
-    if not exists (select 1 from public.classes where id = new.class_id and school_id = new.school_id) then
-      raise exception 'Student class must belong to the same school';
+  if tg_table_name = 'students' then
+    if new.class_id is not null then
+      if not exists (select 1 from public.classes where id = new.class_id and school_id = new.school_id) then
+        raise exception 'Student class must belong to the same school';
+      end if;
     end if;
   end if;
 

@@ -19,8 +19,28 @@ type LoginPageProps = {
 };
 
 function getInitialError(error?: string) {
+  if (error === "profile_missing") {
+    return "Your Gradix profile was not created.";
+  }
+
+  if (error === "inactive") {
+    return "Your account is inactive.";
+  }
+
+  if (error === "school_missing") {
+    return "Your school profile was not found.";
+  }
+
+  if (error === "invalid_role") {
+    return "Your account role is not authorized.";
+  }
+
+  if (error === "school_inactive") {
+    return "Your school workspace is inactive.";
+  }
+
   if (error === "account") {
-    return "Your account is inactive, blocked, or not authorized for dashboard access.";
+    return "We could not verify your Gradix dashboard access. Try signing in again.";
   }
 
   if (error === "expired") {

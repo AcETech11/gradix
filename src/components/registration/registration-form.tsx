@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuthResult } from "@/hooks/use-auth-result";
+import { logAuthDebug, logAuthError } from "@/lib/auth/debug";
 import { usePasswordVisibility } from "@/hooks/use-password-visibility";
 import { registrationSchema, type RegistrationFormValues, type RegistrationInput } from "@/lib/registration/schema";
 
@@ -40,15 +41,42 @@ export function RegistrationForm({ initialError }: RegistrationFormProps) {
   });
 
   function onSubmit(values: RegistrationInput) {
+    logAuthDebug("register submit valid", {
+      fullName: values.fullName,
+      schoolEmail: values.schoolEmail,
+      phoneNumber: values.phoneNumber,
+      passwordLength: values.password.length,
+    });
     setResult(null);
     startTransition(async () => {
-      const response = await registerSchoolOwnerAction(values);
-      setResult(response);
+      try {
+        logAuthDebug("register action start", { schoolEmail: values.schoolEmail });
+        const response = await registerSchoolOwnerAction(values);
+        logAuthDebug("register action response", {
+          ok: response.ok,
+          message: response.message,
+          redirectTo: response.data?.redirectTo ?? null,
+        });
+        setResult(response);
 
-      if (response.ok && response.data?.redirectTo) {
-        router.replace(response.data.redirectTo);
-        router.refresh();
+        if (response.ok && response.data?.redirectTo) {
+          logAuthDebug("register redirect start", { redirectTo: response.data.redirectTo });
+          router.replace(response.data.redirectTo);
+          router.refresh();
+        }
+      } catch (error) {
+        logAuthError("register action threw", error);
+        setResult({
+          ok: false,
+          message: "Registration could not be completed. Check your connection and try again.",
+        });
       }
+    });
+  }
+
+  function onInvalid(fieldErrors: unknown) {
+    logAuthDebug("register submit invalid", {
+      fields: Object.keys(fieldErrors as Record<string, unknown>),
     });
   }
 
@@ -56,7 +84,7 @@ export function RegistrationForm({ initialError }: RegistrationFormProps) {
   const isError = Boolean(message && (!result || result.ok === false));
 
   return (
-    <form className="space-y-5" onSubmit={handleSubmit(onSubmit)}>
+    <form className="space-y-5" onSubmit={handleSubmit(onSubmit, onInvalid)}>
       {message ? (
         <div
           className={
@@ -148,7 +176,12 @@ export function RegistrationForm({ initialError }: RegistrationFormProps) {
         Use a strong password with uppercase, lowercase, numbers, and symbols.
       </div>
 
-      <Button className="h-11 w-full bg-orange-600 text-white shadow-lg shadow-orange-950/20 hover:bg-orange-700" disabled={isPending}>
+      <Button
+        type="submit"
+        className="h-11 w-full bg-orange-600 text-white shadow-lg shadow-orange-950/20 hover:bg-orange-700"
+        disabled={isPending}
+        onClick={() => logAuthDebug("register button clicked", { disabled: isPending })}
+      >
         {isPending ? <AuthSpinner label="Creating account" /> : "Create account"}
       </Button>
 

@@ -6,7 +6,6 @@ import { finalizeVerifiedRegistration } from "@/lib/registration/service";
 export async function GET(request: NextRequest) {
   const url = new URL(request.url);
   const code = url.searchParams.get("code");
-  const email = url.searchParams.get("email");
 
   if (!code) {
     return NextResponse.json(
@@ -32,9 +31,17 @@ export async function GET(request: NextRequest) {
   }
 
   const result = await finalizeVerifiedRegistration();
+  const { data: school } = await supabase
+    .from("schools")
+    .select("metadata")
+    .eq("id", result.school_id)
+    .maybeSingle();
+
+  const metadata = school?.metadata as Record<string, unknown> | null | undefined;
+  const onboardingCompleted = Boolean(metadata && metadata.onboarding_completed === true);
 
   return NextResponse.json({
     ok: true,
-    redirectTo: `/register/success?school_code=${encodeURIComponent(result.school_code)}${email ? `&email=${encodeURIComponent(email)}` : ""}`,
+    redirectTo: onboardingCompleted ? "/dashboard" : "/onboarding",
   });
 }

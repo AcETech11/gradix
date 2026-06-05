@@ -3,7 +3,6 @@ import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { DatabaseAccessError, DatabaseAuthError } from "@/lib/supabase/database";
 import { hasPermission, isDashboardRole } from "@/lib/auth/permissions";
-import { isBlockedProfile } from "@/lib/auth/errors";
 import type { AuthPermission, AuthProfile, AuthRole, AuthSchool, AuthUser } from "@/types/auth";
 
 export const getCurrentUser = cache(async (): Promise<AuthUser | null> => {
@@ -40,7 +39,7 @@ export const getCurrentUserProfile = cache(async (): Promise<AuthProfile | null>
   const supabase = await createClient();
   const { data, error } = await supabase.from("users").select("*").eq("id", user.id).maybeSingle();
 
-  if (error || !data || !data.is_active || isBlockedProfile(data.metadata)) {
+  if (error || !data || !data.is_active) {
     return null;
   }
 
