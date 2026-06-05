@@ -6,6 +6,7 @@ export const resultTemplateSchema = z.object({
     message: "Select a term.",
   }),
   academicYear: z.string().regex(/^[0-9]{4}\/[0-9]{4}$/, "Use an academic year like 2025/2026."),
+  includeSampleRows: z.boolean().optional().default(false),
 });
 
 export type ResultTemplateInput = z.infer<typeof resultTemplateSchema>;
@@ -17,6 +18,7 @@ export type TemplateClassOption = {
   academicYear: string;
   teacherId: string | null;
   subjectCount: number;
+  subjectNames: string[];
   studentCount: number;
 };
 
@@ -38,6 +40,7 @@ export type ResultTemplateWorkbookInput = {
   className: string;
   term: ResultTemplateInput["term"];
   academicYear: string;
+  includeSampleRows: boolean;
   subjects: TemplateSubject[];
   students: TemplateStudent[];
 };

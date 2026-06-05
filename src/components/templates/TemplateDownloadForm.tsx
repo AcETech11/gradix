@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Download, FileSpreadsheet } from "lucide-react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 
 import { generateResultTemplateAction } from "@/actions/templates/generate-template-action";
 import { AuthSpinner } from "@/components/auth/auth-loading";
@@ -53,7 +53,8 @@ export function TemplateDownloadForm({ classes, defaultAcademicYear }: TemplateD
   const {
     register,
     handleSubmit,
-    watch,
+    control,
+    getValues,
     formState: { errors },
   } = useForm<ResultTemplateFormValues, unknown, ResultTemplateInput>({
     resolver: zodResolver(resultTemplateSchema),
@@ -61,21 +62,55 @@ export function TemplateDownloadForm({ classes, defaultAcademicYear }: TemplateD
       classId: classes[0]?.id ?? "",
       term: "first",
       academicYear: defaultAcademicYear,
+      includeSampleRows: false,
     },
   });
 
-  const selectedClassId = watch("classId");
+  const selectedClassId = useWatch({ control, name: "classId" });
   const selectedClass = useMemo(
     () => classes.find((schoolClass) => schoolClass.id === selectedClassId),
     [classes, selectedClassId],
   );
 
   async function onSubmit(values: ResultTemplateInput) {
+    await downloadTemplate(values, false);
+  }
+
+  async function downloadSampleTemplate() {
+    const values = resultTemplateSchema.parse({
+      ...getValues(),
+      includeSampleRows: true,
+    });
+
+    await downloadTemplate(values, true);
+  }
+
+  async function downloadTemplate(values: ResultTemplateInput, allowSampleRows: boolean) {
     setResult(null);
+
+    if (selectedClass?.subjectCount === 0) {
+      setResult({
+        ok: false,
+        message: "This class has no subjects assigned. Assign subjects before downloading a result template.",
+      });
+      return;
+    }
+
+    if (!allowSampleRows && selectedClass?.studentCount === 0) {
+      setResult({
+        ok: false,
+        message: "No students found in this class. Add students first or download a blank sample template.",
+      });
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
-      const response = await generateResultTemplateAction(values);
+      const response = await generateResultTemplateAction({
+        ...values,
+        includeSampleRows: allowSampleRows,
+      });
       setResult(response);
 
       if (response.ok) {
@@ -166,13 +201,20 @@ export function TemplateDownloadForm({ classes, defaultAcademicYear }: TemplateD
 
         <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-xs leading-5 text-slate-400">Workbook sheets: Results Template, Instructions, Grading Guide, Class Subjects.</p>
-          <Button
-            className="h-11 bg-orange-600 px-5 text-white shadow-lg shadow-orange-950/20 hover:bg-orange-700"
-            disabled={isSubmitting || classes.length === 0}
-            type="submit"
-          >
-            {isSubmitting ? <AuthSpinner label="Generating" /> : <><Download /> Download template</>}
-          </Button>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            {selectedClass?.studentCount === 0 ? (
+              <Button disabled={isSubmitting || classes.length === 0 || selectedClass.subjectCount === 0} type="button" variant="outline" onClick={downloadSampleTemplate}>
+                <Download /> Blank sample
+              </Button>
+            ) : null}
+            <Button
+              className="h-11 bg-orange-600 px-5 text-white shadow-lg shadow-orange-950/20 hover:bg-orange-700"
+              disabled={isSubmitting || classes.length === 0}
+              type="submit"
+            >
+              {isSubmitting ? <AuthSpinner label="Generating" /> : <><Download /> Download template</>}
+            </Button>
+          </div>
         </div>
       </form>
 

@@ -4,7 +4,7 @@ create or replace function public.generate_school_code()
 returns text
 language plpgsql
 security definer
-set search_path = public
+set search_path = public, extensions
 as $$
 declare
   candidate text;

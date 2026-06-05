@@ -31,6 +31,10 @@ function saveErrorState<TData = unknown>(error: { message: string } | null): Onb
   };
 }
 
+function normalizeClassName(name: string) {
+  return name.trim().toLowerCase();
+}
+
 export async function saveSchoolInformationAction(input: unknown): Promise<OnboardingActionState> {
   const profile = await requireRole(["admin", "headmaster"]);
   const parsed = schoolInformationSchema.safeParse(input);
@@ -137,9 +141,10 @@ export async function saveAcademicStructureAction(
   const supabase = await createClient();
   const academicYear = getCurrentAcademicYear();
   const incomingIds = parsed.data.classes.map((row) => row.id).filter(Boolean);
+  const incomingNames = parsed.data.classes.map((row) => normalizeClassName(row.name));
   const { data: existingClasses, error: existingError } = await supabase
     .from("classes")
-    .select("id")
+    .select("id, name")
     .eq("school_id", profile.school_id)
     .eq("academic_year", academicYear);
 
@@ -147,8 +152,10 @@ export async function saveAcademicStructureAction(
     return saveErrorState(existingError);
   }
 
-  const existingIds = existingClasses.map((row) => row.id);
-  const inactiveIds = existingIds.filter((id) => !incomingIds.includes(id));
+  const existingClassesByName = new Map(existingClasses.map((row) => [normalizeClassName(row.name), row]));
+  const inactiveIds = existingClasses
+    .filter((row) => !incomingIds.includes(row.id) && !incomingNames.includes(normalizeClassName(row.name)))
+    .map((row) => row.id);
 
   if (inactiveIds.length > 0) {
     const { error } = await supabase
@@ -172,8 +179,15 @@ export async function saveAcademicStructureAction(
       is_active: true,
     };
 
-    if (row.id) {
-      const { error } = await supabase.from("classes").update(payload).eq("id", row.id).eq("school_id", profile.school_id);
+    const existingClass = row.id ? null : existingClassesByName.get(normalizeClassName(row.name));
+    const targetClassId = row.id || existingClass?.id;
+
+    if (targetClassId) {
+      const { error } = await supabase
+        .from("classes")
+        .update(payload)
+        .eq("id", targetClassId)
+        .eq("school_id", profile.school_id);
 
       if (error) {
         return saveErrorState(error);

@@ -7,9 +7,9 @@ import { requireRole } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import { getAuthErrorMessage } from "@/lib/auth/errors";
 import { studentFormSchema, studentImportRowsSchema, type StudentFormInput, type StudentImportRowsInput } from "@/lib/students/schema";
-import { STUDENT_PASSPORT_BUCKET } from "@/lib/students/storage";
 import { toStudentWritePayload } from "@/lib/students/data";
 import type { AuthActionState } from "@/types/auth";
+import type { TableInsert } from "@/types/database";
 
 function mapZodErrors(error: ZodError) {
   return error.issues.reduce<Record<string, string[]>>((accumulator, issue) => {
@@ -37,11 +37,35 @@ function normalizeGeneralError(error: unknown) {
     return getAuthErrorMessage(error.message);
   }
 
+  if (error && typeof error === "object" && "message" in error) {
+    const message = (error as { message?: unknown }).message;
+
+    if (typeof message === "string" && message.trim()) {
+      return getAuthErrorMessage(message);
+    }
+  }
+
   return "Something went wrong while saving the student.";
 }
 
 async function ensureStudentAccess() {
   return requireRole(["admin", "teacher"]);
+}
+
+async function generateStudentCode(supabase: Awaited<ReturnType<typeof createClient>>, schoolId: string) {
+  const { data, error } = await supabase.rpc("generate_student_code", {
+    target_school_id: schoolId,
+  });
+
+  if (error) {
+    throw error;
+  }
+
+  if (!data) {
+    throw new Error("A permanent student code could not be generated.");
+  }
+
+  return data;
 }
 
 export async function createStudentAction(input: StudentFormInput): Promise<AuthActionState<{ studentId: string; studentCode: string; redirectTo: string }>> {
@@ -54,10 +78,14 @@ export async function createStudentAction(input: StudentFormInput): Promise<Auth
   try {
     const profile = await ensureStudentAccess();
     const supabase = await createClient();
+    const studentCode = await generateStudentCode(supabase, profile.school_id);
 
     const { data, error } = await supabase
       .from("students")
-      .insert(toStudentWritePayload(parsed.data, profile.school_id))
+      .insert({
+        ...toStudentWritePayload(parsed.data, profile.school_id),
+        permanent_code: studentCode,
+      })
       .select("id, permanent_code")
       .single();
 
@@ -258,28 +286,32 @@ export async function importStudentsAction(
       };
     }
 
+    const rowsToInsert: TableInsert<"students">[] = [];
+
+    for (const row of validRows) {
+      rowsToInsert.push({
+        school_id: profile.school_id,
+        class_id: row.classId as string,
+        permanent_code: row.studentCode.trim() || (await generateStudentCode(supabase, profile.school_id)),
+        first_name: row.firstName.trim(),
+        middle_name: null,
+        last_name: row.lastName.trim(),
+        gender: row.gender,
+        parent_full_name: row.parentName.trim(),
+        parent_phone: row.parentPhone.trim(),
+        admission_number: row.admissionNumber.trim(),
+        status: "active",
+        is_active: true,
+        metadata: {
+          source: "bulk_import",
+          imported_at: new Date().toISOString(),
+        },
+      });
+    }
+
     const { error } = await supabase
       .from("students")
-      .insert(
-        validRows.map((row) => ({
-          school_id: profile.school_id,
-          class_id: row.classId as string,
-          first_name: row.firstName.trim(),
-          ...(row.studentCode.trim() ? { permanent_code: row.studentCode.trim() } : {}),
-          middle_name: null,
-          last_name: row.lastName.trim(),
-          gender: row.gender,
-          parent_full_name: row.parentName.trim(),
-          parent_phone: row.parentPhone.trim(),
-          admission_number: row.admissionNumber.trim(),
-          status: "active",
-          is_active: true,
-          metadata: {
-            source: "bulk_import",
-            imported_at: new Date().toISOString(),
-          },
-        })),
-      );
+      .insert(rowsToInsert);
 
     if (error) {
       throw error;
@@ -303,5 +335,3 @@ export async function importStudentsAction(
     };
   }
 }
-
-export { STUDENT_PASSPORT_BUCKET };

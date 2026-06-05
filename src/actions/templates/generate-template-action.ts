@@ -94,22 +94,35 @@ export async function generateResultTemplateAction(input: unknown): Promise<Temp
     };
   }
 
-  const subjectIds = [...new Set((assignments ?? []).map((assignment) => assignment.subject_id))];
-  const { data: subjects, error: subjectsError } =
-    subjectIds.length > 0
-      ? await supabase
-          .from("subjects")
-          .select("id, name, code")
-          .eq("school_id", profile.school_id)
-          .eq("is_active", true)
-          .in("id", subjectIds)
-          .order("name")
-      : { data: [], error: null };
+  const subjectIds = Array.from(new Set((assignments ?? []).map((assignment) => assignment.subject_id).filter(Boolean)));
+
+  if (subjectIds.length === 0) {
+    return {
+      ok: false,
+      message: "This class has no subjects assigned. Assign subjects before downloading a result template.",
+    };
+  }
+
+  const { data: subjects, error: subjectsError } = await supabase
+    .from("subjects")
+    .select("id, name, code")
+    .eq("school_id", profile.school_id)
+    .eq("is_active", true)
+    .in("id", subjectIds)
+    .order("name");
 
   if (subjectsError) {
     return {
       ok: false,
-      message: "We could not load subjects for this class.",
+      message: "We could not load subject details for this class.",
+    };
+  }
+
+  if (!subjects?.length) {
+    return {
+      ok: false,
+      message:
+        "Subject assignments exist for this class, but the assigned subjects are inactive or missing. Re-save the Subjects & Class Assignments step.",
     };
   }
 
@@ -129,12 +142,20 @@ export async function generateResultTemplateAction(input: unknown): Promise<Temp
     };
   }
 
+  if (!parsed.data.includeSampleRows && !students?.length) {
+    return {
+      ok: false,
+      message: "No students found in this class. Add students first or download a blank sample template.",
+    };
+  }
+
   const workbook = buildResultTemplateWorkbook({
     schoolName: school.name,
     className: schoolClass.name,
     term: parsed.data.term,
     academicYear: parsed.data.academicYear,
-    subjects: (subjects ?? []).map((subject) => ({
+    includeSampleRows: parsed.data.includeSampleRows,
+    subjects: subjects.map((subject) => ({
       id: subject.id,
       name: subject.name,
       code: subject.code,
@@ -142,7 +163,7 @@ export async function generateResultTemplateAction(input: unknown): Promise<Temp
     students: (students ?? []).map((student) => ({
       permanentCode: student.permanent_code,
       admissionNumber: student.admission_number ?? "",
-      name: [student.last_name, student.first_name, student.middle_name].filter(Boolean).join(" "),
+      name: [student.first_name, student.middle_name, student.last_name].filter(Boolean).join(" "),
       className: schoolClass.name,
     })),
   });

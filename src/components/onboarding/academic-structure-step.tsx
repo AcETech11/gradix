@@ -34,6 +34,7 @@ export function AcademicStructureStep({ defaultValues, teachers, onSaved, onComp
   const { fields, append, remove } = useFieldArray({
     control,
     name: "classes",
+    keyName: "fieldKey",
   });
 
   useEffect(() => {
@@ -63,7 +64,8 @@ export function AcademicStructureStep({ defaultValues, teachers, onSaved, onComp
       ) : null}
       <div className="grid gap-3">
         {fields.map((field, index) => (
-          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4" key={field.id}>
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4" key={field.fieldKey}>
+            <input type="hidden" {...register(`classes.${index}.id`)} />
             <div className="grid gap-3 md:grid-cols-[1fr_1fr_auto] md:items-start">
               <div>
                 <Input placeholder="JSS 1A" {...register(`classes.${index}.name`)} />

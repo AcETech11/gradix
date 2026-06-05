@@ -36,11 +36,34 @@ export function TemplatePreviewCard({ selectedClass }: TemplatePreviewCardProps)
         </div>
       </div>
 
+      {selectedClass.subjectNames.length > 0 ? (
+        <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
+          <p className="text-sm font-medium text-slate-200">Subjects in this template</p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {selectedClass.subjectNames.map((subjectName) => (
+              <span
+                className="rounded-full border border-orange-300/20 bg-orange-500/10 px-3 py-1 text-xs font-medium text-orange-100"
+                key={subjectName}
+              >
+                {subjectName}
+              </span>
+            ))}
+          </div>
+        </div>
+      ) : null}
+
+      <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
+        <p className="text-sm font-medium text-slate-200">Template columns</p>
+        <p className="mt-2 text-sm leading-6 text-slate-400">
+          Student Code, Student Name, Admission Number, Class, then CA (0-40), Exam (0-60), and Remark for each assigned subject.
+        </p>
+      </div>
+
       {selectedClass.subjectCount === 0 ? (
-        <WarningText message="This class has no assigned subjects. The workbook can still download, but it will not contain score columns yet." />
+        <WarningText message="This class has no subjects assigned. Assign subjects before downloading a result template." />
       ) : null}
       {selectedClass.studentCount === 0 ? (
-        <WarningText message="This class has no students yet. The workbook will include five sample rows." />
+        <WarningText message="No students found in this class. Add students first or download a blank sample template." />
       ) : null}
     </section>
   );

@@ -3,6 +3,11 @@ import { getCurrentAcademicYear } from "@/lib/onboarding/utils";
 import { createClient } from "@/lib/supabase/server";
 import type { TemplateClassOption } from "@/lib/templates/template-types";
 
+type AssignmentPreviewRow = {
+  class_id: string;
+  subject_id: string;
+};
+
 export async function getTemplatePageData() {
   const profile = await requireRole(["admin", "headmaster", "teacher"]);
   const supabase = await createClient();
@@ -43,17 +48,71 @@ export async function getTemplatePageData() {
     throw new Error(assignmentsError?.message ?? studentsError?.message ?? "Template page data could not be loaded.");
   }
 
+  const assignmentRows = (assignments ?? []) as unknown as AssignmentPreviewRow[];
+  const subjectIds = Array.from(new Set(assignmentRows.map((assignment) => assignment.subject_id).filter(Boolean)));
+  const { data: subjects, error: subjectsError } =
+    subjectIds.length > 0
+      ? await supabase
+          .from("subjects")
+          .select("id, name")
+          .eq("school_id", profile.school_id)
+          .eq("is_active", true)
+          .in("id", subjectIds)
+      : { data: [], error: null };
+
+  if (subjectsError) {
+    throw new Error(subjectsError.message);
+  }
+
+  const subjectNamesById = new Map((subjects ?? []).map((subject) => [subject.id, subject.name]));
+  const usableAssignments = assignmentRows.filter((assignment) => subjectNamesById.has(assignment.subject_id));
   const classOptions: TemplateClassOption[] = (classes ?? []).map((schoolClass) => ({
-    id: schoolClass.id,
-    name: schoolClass.name,
-    academicYear: schoolClass.academic_year,
-    teacherId: schoolClass.teacher_id,
-    subjectCount: new Set((assignments ?? []).filter((assignment) => assignment.class_id === schoolClass.id).map((assignment) => assignment.subject_id)).size,
-    studentCount: (students ?? []).filter((student) => student.class_id === schoolClass.id).length,
+    ...buildTemplateClassOption({
+      schoolClass,
+      assignments: usableAssignments,
+      students: students ?? [],
+      subjectNamesById,
+    }),
   }));
 
   return {
     classes: classOptions,
     defaultAcademicYear: classOptions[0]?.academicYear ?? getCurrentAcademicYear(),
+  };
+}
+
+function buildTemplateClassOption({
+  schoolClass,
+  assignments,
+  students,
+  subjectNamesById,
+}: {
+  schoolClass: {
+    id: string;
+    name: string;
+    academic_year: string;
+    teacher_id: string | null;
+  };
+  assignments: AssignmentPreviewRow[];
+  students: { class_id: string | null }[];
+  subjectNamesById: Map<string, string>;
+}): TemplateClassOption {
+  const subjectNames = Array.from(
+    new Set(
+      assignments
+        .filter((assignment) => assignment.class_id === schoolClass.id)
+        .map((assignment) => subjectNamesById.get(assignment.subject_id))
+        .filter((name): name is string => Boolean(name)),
+    ),
+  ).sort((first, second) => first.localeCompare(second));
+
+  return {
+    id: schoolClass.id,
+    name: schoolClass.name,
+    academicYear: schoolClass.academic_year,
+    teacherId: schoolClass.teacher_id,
+    subjectCount: subjectNames.length,
+    subjectNames,
+    studentCount: students.filter((student) => student.class_id === schoolClass.id).length,
   };
 }
