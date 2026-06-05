@@ -1,6 +1,7 @@
 import type { LucideIcon } from "lucide-react";
 import {
   FileBarChart2,
+  FileSpreadsheet,
   Fingerprint,
   LayoutDashboard,
   Settings2,
@@ -37,6 +38,11 @@ export const DASHBOARD_NAV_ITEMS: DashboardNavItem[] = [
     icon: UploadCloud,
   },
   {
+    title: "Templates",
+    href: "/dashboard/templates",
+    icon: FileSpreadsheet,
+  },
+  {
     title: "Results",
     href: "/dashboard/results",
     icon: FileBarChart2,
@@ -64,6 +70,7 @@ export const DASHBOARD_BREADCRUMB_LABELS: Record<string, string> = {
   dashboard: "Dashboard",
   students: "Students",
   uploads: "Uploads",
+  templates: "Templates",
   results: "Results",
   "parent-access": "Parent Access",
   audit: "Audit Logs",
