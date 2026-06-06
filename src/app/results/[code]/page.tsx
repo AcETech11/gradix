@@ -4,6 +4,10 @@ import { ParentPortalLayout } from "@/components/parent-portal/ParentPortalLayou
 import { ResultLookupCard } from "@/components/parent-portal/ResultLookupCard";
 import { normalizeResultCode } from "@/lib/parent-portal/normalize-result-code";
 
+export const metadata = {
+  title: "Official Student Result Report",
+};
+
 type PublicResultPageProps = {
   params: Promise<{ code: string }>;
   searchParams: Promise<{ term?: string; year?: string }>;

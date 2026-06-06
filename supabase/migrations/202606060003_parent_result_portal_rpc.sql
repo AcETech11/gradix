@@ -216,7 +216,9 @@ begin
       'address', school_record.address_line_1,
       'phone', school_record.phone,
       'email', school_record.email,
-      'motto', school_record.motto
+      'motto', school_record.motto,
+      'principalName', coalesce(school_record.metadata->>'principal_name', 'Principal'),
+      'principalSignatureUrl', school_record.headmaster_signature_url
     ),
     'student', jsonb_build_object(
       'name', trim(concat_ws(' ', student_record.first_name, student_record.middle_name, student_record.last_name)),

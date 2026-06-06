@@ -27,6 +27,8 @@ export type PublicResultPayload = {
     phone: string | null;
     email: string | null;
     motto: string | null;
+    principalName: string | null;
+    principalSignatureUrl: string | null;
   };
   student: {
     name: string;
