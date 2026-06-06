@@ -44,6 +44,9 @@ export type PublicResultPayload = {
     term: SchoolTerm;
     academicYear: string;
     className: string;
+    classTeacherName?: string | null;
+    classTeacherSignatureUrl?: string | null;
+    classTeacherComment?: string | null;
     publishedAt: string | null;
     rows: ParentResultRow[];
   };

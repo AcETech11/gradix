@@ -8,7 +8,7 @@ export function ReportSignatureBlock({ report }: { report: PrintableReportData }
       <div className="report-comment-grid">
         <div className="report-comment">
           <span>Class Teacher Comment</span>
-          <p>{report.reportSettings.classTeacherComment}</p>
+          <p>{report.classTeacherComment}</p>
         </div>
         <div className="report-comment">
           <span>Principal Comment</span>
@@ -17,9 +17,13 @@ export function ReportSignatureBlock({ report }: { report: PrintableReportData }
       </div>
       <div className="report-signature-grid">
         <div className="report-signature-box">
-          <div className="report-signature-placeholder" />
-          <strong>Class Teacher</strong>
-          <span>Signature</span>
+          {report.classTeacherSignatureUrl ? (
+            <Image alt="Class teacher signature" className="report-signature-image" height={52} src={report.classTeacherSignatureUrl} unoptimized width={140} />
+          ) : (
+            <div className="report-signature-placeholder" />
+          )}
+          <strong>{report.classTeacherName}</strong>
+          <span>Class Teacher</span>
         </div>
         <div className="report-signature-box">
           {report.principalSignatureUrl ? (
@@ -35,8 +39,14 @@ export function ReportSignatureBlock({ report }: { report: PrintableReportData }
           <span>Date Printed</span>
         </div>
         <div className="report-stamp-box">
-          <strong>{report.reportSettings.nextTermBegins ? `Next Term: ${new Date(report.reportSettings.nextTermBegins).toLocaleDateString()}` : "School Stamp / Seal"}</strong>
-          <span>Official validation area</span>
+          {report.school.sealUrl ? (
+            <Image alt="School seal" className="report-stamp-image" height={70} src={report.school.sealUrl} unoptimized width={70} />
+          ) : (
+            <>
+              <strong>School Stamp / Seal</strong>
+              <span>Official validation area</span>
+            </>
+          )}
         </div>
       </div>
     </section>

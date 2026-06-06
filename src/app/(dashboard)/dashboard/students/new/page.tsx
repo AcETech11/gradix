@@ -8,7 +8,7 @@ import { getCurrentUserProfile } from "@/lib/auth/session";
 export default async function NewStudentPage() {
   const profile = await getCurrentUserProfile();
 
-  if (!profile || (profile.role !== "admin" && profile.role !== "teacher")) {
+  if (!profile || profile.role !== "admin") {
     redirect("/dashboard/students");
   }
 

@@ -1,12 +1,13 @@
 "use server";
 
-import { requireRole } from "@/lib/auth/session";
+import { requireCanManageResultOperations } from "@/lib/auth/authorization";
 import { createClient } from "@/lib/supabase/server";
 import { canArchiveResultUpload, canEditResultScores, canPublishResultUpload, canViewResultUpload } from "@/lib/results/permissions";
+import { getMetadataObject, getMetadataString } from "@/lib/settings/settings-types";
 import type { ResultReviewRow, ResultUploadDetail } from "@/lib/results/result-types";
 
 export async function getUploadResultsAction(uploadId: string): Promise<{ upload: ResultUploadDetail; rows: ResultReviewRow[] }> {
-  const profile = await requireRole(["admin", "headmaster", "teacher"]);
+  const profile = await requireCanManageResultOperations();
   const supabase = await createClient();
   const { data: upload, error: uploadError } = await supabase
     .from("result_uploads")
@@ -25,7 +26,7 @@ export async function getUploadResultsAction(uploadId: string): Promise<{ upload
 
   const { data: results, error: resultsError } = await supabase
     .from("results")
-    .select("id, student_id, subject_id, continuous_assessment, exam_score, total_score, grade, remark, is_published, edited_by, edited_at, edit_count")
+    .select("id, student_id, subject_id, continuous_assessment, exam_score, total_score, grade, remark, is_published, edited_by, edited_at, edit_count, metadata")
     .eq("school_id", profile.school_id)
     .eq("upload_id", upload.id)
     .order("created_at", { ascending: true });
@@ -110,6 +111,7 @@ export async function getUploadResultsAction(uploadId: string): Promise<{ upload
         editedAt: result.edited_at,
         editCount: result.edit_count,
         editedAfterPublish: Boolean(result.edited_at && publishedDate && new Date(result.edited_at) > new Date(publishedDate)),
+        classTeacherComment: getMetadataString(getMetadataObject(result.metadata), "class_teacher_comment") || null,
       };
     }),
   };

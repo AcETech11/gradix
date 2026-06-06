@@ -1,6 +1,6 @@
 "use server";
 
-import { requireRole } from "@/lib/auth/session";
+import { requireCanManageResultOperations } from "@/lib/auth/authorization";
 import { buildResultTemplateWorkbook } from "@/lib/templates/build-result-template";
 import { resultTemplateSchema, type GeneratedTemplateFile } from "@/lib/templates/template-types";
 import { createClient } from "@/lib/supabase/server";
@@ -25,20 +25,8 @@ function validationErrorState(fieldErrors?: Record<string, string[] | undefined>
   };
 }
 
-function canDownloadClassTemplate(profile: Awaited<ReturnType<typeof requireRole>>, classTeacherId: string | null) {
-  if (profile.role === "admin" || profile.role === "headmaster") {
-    return true;
-  }
-
-  if (profile.role === "teacher") {
-    return !classTeacherId || classTeacherId === profile.id;
-  }
-
-  return false;
-}
-
 export async function generateResultTemplateAction(input: unknown): Promise<TemplateActionState> {
-  const profile = await requireRole(["admin", "headmaster", "teacher"]);
+  const profile = await requireCanManageResultOperations();
   const parsed = resultTemplateSchema.safeParse(input);
 
   if (!parsed.success) {
@@ -70,13 +58,6 @@ export async function generateResultTemplateAction(input: unknown): Promise<Temp
     return {
       ok: false,
       message: "The selected class was not found for your school.",
-    };
-  }
-
-  if (!canDownloadClassTemplate(profile, schoolClass.teacher_id)) {
-    return {
-      ok: false,
-      message: "You are not allowed to download a template for this class.",
     };
   }
 
@@ -166,6 +147,23 @@ export async function generateResultTemplateAction(input: unknown): Promise<Temp
       name: [student.first_name, student.middle_name, student.last_name].filter(Boolean).join(" "),
       className: schoolClass.name,
     })),
+  });
+
+  await supabase.from("audit_logs").insert({
+    school_id: profile.school_id,
+    actor_id: profile.id,
+    actor_role: profile.role,
+    action: "validate",
+    table_name: "result_uploads",
+    details: {
+      security_event: "result_template_generated",
+      class_id: schoolClass.id,
+      class_name: schoolClass.name,
+      term: parsed.data.term,
+      academic_year: parsed.data.academicYear,
+      subject_count: subjects.length,
+      student_count: students?.length ?? 0,
+    },
   });
 
   return {

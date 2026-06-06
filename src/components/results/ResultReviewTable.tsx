@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 
+import { ClassTeacherCommentDialog } from "@/components/results/ClassTeacherCommentDialog";
 import { ResultStatusBadge } from "@/components/results/ResultStatusBadge";
 import { ScoreEditDialog } from "@/components/results/ScoreEditDialog";
 import type { ResultReviewRow } from "@/lib/results/result-types";
@@ -9,9 +10,10 @@ import type { ResultReviewRow } from "@/lib/results/result-types";
 type ResultReviewTableProps = {
   rows: ResultReviewRow[];
   canEdit: boolean;
+  uploadId: string;
 };
 
-export function ResultReviewTable({ canEdit, rows }: ResultReviewTableProps) {
+export function ResultReviewTable({ canEdit, rows, uploadId }: ResultReviewTableProps) {
   const [message, setMessage] = useState("");
   const [search, setSearch] = useState("");
   const [subject, setSubject] = useState("all");
@@ -84,7 +86,7 @@ export function ResultReviewTable({ canEdit, rows }: ResultReviewTableProps) {
         <table className="min-w-[82rem] w-full text-left text-sm">
           <thead className="text-xs uppercase tracking-[0.12em] text-slate-400">
             <tr className="border-b border-white/10">
-              {["Student Code", "Student Name", "Admission", "Subject", "CA", "Exam", "Total", "Grade", "Remark", "Status", "Edited", "Actions"].map((header) => (
+              {["Student Code", "Student Name", "Admission", "Subject", "CA", "Exam", "Total", "Grade", "Remark", "Teacher Comment", "Status", "Edited", "Actions"].map((header) => (
                 <th className="px-3 py-3 font-medium" key={header}>
                   {header}
                 </th>
@@ -103,6 +105,7 @@ export function ResultReviewTable({ canEdit, rows }: ResultReviewTableProps) {
                 <td className="px-3 py-3">{row.totalScore}</td>
                 <td className="px-3 py-3">{row.grade}</td>
                 <td className="max-w-56 px-3 py-3">{row.remark ?? "-"}</td>
+                <td className="max-w-64 px-3 py-3">{row.classTeacherComment ?? "-"}</td>
                 <td className="px-3 py-3">
                   <ResultStatusBadge status={row.isPublished ? "published" : "validated"}>{row.isPublished ? "Published" : "Unpublished"}</ResultStatusBadge>
                 </td>
@@ -110,7 +113,10 @@ export function ResultReviewTable({ canEdit, rows }: ResultReviewTableProps) {
                   {row.editedAfterPublish ? <ResultStatusBadge status="edited-after-publish" /> : row.editCount > 0 ? <ResultStatusBadge status="edited" /> : "-"}
                 </td>
                 <td className="px-3 py-3">
-                  <ScoreEditDialog disabled={!canEdit} onMessage={setMessage} result={row} />
+                  <div className="flex flex-wrap gap-2">
+                    <ScoreEditDialog disabled={!canEdit} onMessage={setMessage} result={row} />
+                    <ClassTeacherCommentDialog disabled={!canEdit} onMessage={setMessage} result={row} uploadId={uploadId} />
+                  </div>
                 </td>
               </tr>
             ))}
@@ -135,10 +141,14 @@ export function ResultReviewTable({ canEdit, rows }: ResultReviewTableProps) {
               <p>Exam: {row.examScore}</p>
               <p>Total: {row.totalScore}</p>
               <p>Admission: {row.admissionNumber ?? "N/A"}</p>
+              <p className="col-span-2">Teacher comment: {row.classTeacherComment ?? "-"}</p>
             </div>
             {row.editedAfterPublish ? <div className="mt-3"><ResultStatusBadge status="edited-after-publish" /></div> : null}
             <div className="mt-4">
-              <ScoreEditDialog disabled={!canEdit} onMessage={setMessage} result={row} />
+              <div className="flex flex-wrap gap-2">
+                <ScoreEditDialog disabled={!canEdit} onMessage={setMessage} result={row} />
+                <ClassTeacherCommentDialog disabled={!canEdit} onMessage={setMessage} result={row} uploadId={uploadId} />
+              </div>
             </div>
           </article>
         ))}

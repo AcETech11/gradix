@@ -37,7 +37,7 @@ function normalizeSearchParams(searchParams: Record<string, string | string[] | 
 export default async function StudentsPage({ searchParams }: StudentsPageProps) {
   const params = normalizeSearchParams(await searchParams);
   const data = await getStudentsPageData(params);
-  const canManage = data.profile.role === "admin" || data.profile.role === "teacher";
+  const canManage = data.profile.role === "admin";
   const hasStudents = data.students.length > 0;
 
   return (

@@ -26,7 +26,7 @@ export function SettingsLayout({ settings, users, profile, school }: SettingsLay
         branding: <BrandingSettings canEdit={isAdmin} schoolId={settings.school.id} values={settings.branding} />,
         report: <ReportSettings canEdit={canEditReports} values={settings.reportSettings} />,
         grading: <GradingSystemSettings canEdit={isAdmin} values={settings.gradingScale} />,
-        users: <UserManagementSettings canManage={isAdmin} currentUserId={profile.id} users={users} />,
+        users: <UserManagementSettings canManage={isAdmin} currentUserId={profile.id} schoolId={settings.school.id} users={users} />,
         security: <SecuritySettings profile={profile} school={school} />,
       }}
     />

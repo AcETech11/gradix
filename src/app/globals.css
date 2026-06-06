@@ -53,7 +53,7 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --font-sans: Arial, Helvetica, sans-serif;
-  --font-mono: "Courier New", Courier, monospace;
+  --font-mono:  var(--font-urbanist), "Courier New", Courier, monospace;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -90,6 +90,8 @@
 body {
   background: var(--background);
   color: var(--foreground);
+  font-family: var(--font-mono);
+
 }
 
 ::selection {
@@ -290,8 +292,36 @@ body {
 }
 
 .report-grade-badge {
-  display: inline;
+  display: block;
   font-weight: 700;
+}
+
+.report-performance-label {
+  display: block;
+  margin-top: 2px;
+  font-size: 8px;
+  font-weight: 700;
+}
+
+.performance-excellent,
+.performance-good {
+  color: #166534;
+  background: #f0fdf4;
+}
+
+.performance-credit {
+  color: #075985;
+  background: #f0f9ff;
+}
+
+.performance-pass {
+  color: #92400e;
+  background: #fffbeb;
+}
+
+.performance-fail {
+  color: #991b1b;
+  background: #fef2f2;
 }
 
 .report-table tr {
@@ -362,6 +392,12 @@ body {
   border-top: 1px solid #0f172a;
   padding-top: 8px;
   text-align: center;
+}
+
+.report-stamp-image {
+  display: block;
+  max-height: 70px;
+  object-fit: contain;
 }
 
 .report-signature-box strong,
@@ -630,6 +666,15 @@ body {
   .report-stamp-box {
     min-height: 48px;
     padding: 5px;
+  }
+
+  .report-stamp-image {
+    max-height: 38px;
+  }
+
+  .report-performance-label {
+    font-size: 6.8px;
+    line-height: 1.05;
   }
 
   .report-footer {

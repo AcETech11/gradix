@@ -1,6 +1,6 @@
 "use server";
 
-import { requireRole } from "@/lib/auth/session";
+import { requireCanViewAuditLogs } from "@/lib/auth/authorization";
 import { getFlaggedEditValues } from "@/lib/audit/format-audit-details";
 import { createClient } from "@/lib/supabase/server";
 import type { FlaggedEditItem } from "@/lib/audit/audit-types";
@@ -21,7 +21,7 @@ type RawActor = {
 };
 
 export async function getFlaggedEditsAction(): Promise<FlaggedEditItem[]> {
-  const profile = await requireRole(["admin", "headmaster"]);
+  const profile = await requireCanViewAuditLogs();
   const supabase = await createClient();
 
   const { data, error } = await supabase

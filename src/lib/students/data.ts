@@ -1,4 +1,4 @@
-import { requireRole } from "@/lib/auth/session";
+import { requireAdminOrHeadmaster, requireCanManageStudents } from "@/lib/auth/authorization";
 import { createClient } from "@/lib/supabase/server";
 import type { TableRow } from "@/types/database";
 import type {
@@ -76,7 +76,7 @@ export function toStudentWritePayload(values: StudentFormValues, schoolId: strin
 }
 
 export async function getStudentsPageData(searchParams?: Partial<StudentFilters>) {
-  const profile = await requireRole(["admin", "headmaster", "teacher"]);
+  const profile = await requireAdminOrHeadmaster();
   const supabase = await createClient();
   const filters = studentFiltersSchema.parse(searchParams ?? {});
   const offset = (filters.page - 1) * PAGE_SIZE;
@@ -154,7 +154,7 @@ export async function getStudentsPageData(searchParams?: Partial<StudentFilters>
 }
 
 export async function getStudentDetailData(studentId: string) {
-  const profile = await requireRole(["admin", "headmaster", "teacher"]);
+  const profile = await requireAdminOrHeadmaster();
   const supabase = await createClient();
 
   const [studentResult, classesResult] = await Promise.all([
@@ -188,7 +188,7 @@ export async function getStudentDetailData(studentId: string) {
 }
 
 export async function getStudentFormData() {
-  const profile = await requireRole(["admin", "teacher"]);
+  const profile = await requireCanManageStudents();
   const supabase = await createClient();
 
   const { data, error } = await supabase
@@ -208,7 +208,7 @@ export async function getStudentFormData() {
 }
 
 export async function getStudentEditData(studentId: string) {
-  const profile = await requireRole(["admin", "teacher"]);
+  const profile = await requireCanManageStudents();
   const supabase = await createClient();
 
   const [studentResult, classesResult] = await Promise.all([
@@ -236,7 +236,7 @@ export async function getStudentEditData(studentId: string) {
 }
 
 export async function getStudentFilterOptions() {
-  const profile = await requireRole(["admin", "headmaster", "teacher"]);
+  const profile = await requireAdminOrHeadmaster();
   const supabase = await createClient();
 
   const { data, error } = await supabase

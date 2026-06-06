@@ -15,6 +15,8 @@ type ImageUploadFieldProps = {
   value: string;
   onChange: (url: string) => void;
   disabled?: boolean;
+  pathPrefix?: string;
+  fixedBaseName?: string;
 };
 
 const maxSize = 2 * 1024 * 1024;
@@ -24,7 +26,7 @@ function sanitizeFileName(name: string) {
   return name.toLowerCase().replace(/[^a-z0-9.]+/g, "-");
 }
 
-export function ImageUploadField({ bucket, schoolId, label, value, onChange, disabled }: ImageUploadFieldProps) {
+export function ImageUploadField({ bucket, fixedBaseName, pathPrefix, schoolId, label, value, onChange, disabled }: ImageUploadFieldProps) {
   const [preview, setPreview] = useState(value);
   const [error, setError] = useState<string | null>(null);
   const [progress, setProgress] = useState(0);
@@ -46,7 +48,9 @@ export function ImageUploadField({ bucket, schoolId, label, value, onChange, dis
     startTransition(async () => {
       setProgress(20);
       const supabase = createBrowserSupabaseClient();
-      const path = `${schoolId}/settings-${Date.now()}-${sanitizeFileName(file.name)}`;
+      const extension = file.name.split(".").pop()?.toLowerCase() ?? "png";
+      const fileName = fixedBaseName ? `${fixedBaseName}.${extension}` : `settings-${Date.now()}-${sanitizeFileName(file.name)}`;
+      const path = [schoolId, pathPrefix, fileName].filter(Boolean).join("/");
       const { error: uploadError } = await supabase.storage.from(bucket).upload(path, file, { cacheControl: "3600", upsert: true });
 
       if (uploadError) {

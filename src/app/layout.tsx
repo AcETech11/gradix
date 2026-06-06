@@ -1,5 +1,14 @@
 import type { Metadata } from "next";
+import { Urbanist } from 'next/font/google'
 import "./globals.css";
+
+
+const urbanist = Urbanist({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700', '800'],
+  variable: '--font-urbanist',
+  display: 'swap',
+})
 
 export const metadata: Metadata = {
   title: {
@@ -15,8 +24,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="h-full antialiased">
-      <body className="min-h-full bg-background font-sans text-foreground" suppressHydrationWarning>{children}</body>
+    <html lang="en" className={urbanist.variable}>
+      <body className="min-h-full bg-background font-sans text-foreground antialiased" suppressHydrationWarning>{children}</body>
     </html>
   );
 }

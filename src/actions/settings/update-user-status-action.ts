@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { userStatusSchema, type SettingsActionState } from "@/lib/settings/settings-types";
 import { createClient } from "@/lib/supabase/server";
 
-import { logSettingsAudit, mapZodErrors, requireSettingsAdmin } from "./settings-helpers";
+import { logSettingsAudit, mapZodErrors, requireUserManager } from "./settings-helpers";
 
 export async function updateUserStatusAction(input: unknown): Promise<SettingsActionState> {
   const parsed = userStatusSchema.safeParse(input);
@@ -15,7 +15,7 @@ export async function updateUserStatusAction(input: unknown): Promise<SettingsAc
   }
 
   try {
-    const profile = await requireSettingsAdmin();
+    const profile = await requireUserManager();
 
     if (profile.id === parsed.data.userId && !parsed.data.isActive) {
       return { ok: false, message: "You cannot deactivate your own account from this screen." };

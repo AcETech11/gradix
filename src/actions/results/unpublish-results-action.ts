@@ -2,13 +2,13 @@
 
 import { revalidatePath } from "next/cache";
 
-import { requireRole } from "@/lib/auth/session";
+import { requireCanPublishResults } from "@/lib/auth/authorization";
 import { canPublishResultUpload } from "@/lib/results/permissions";
 import { createClient } from "@/lib/supabase/server";
 import type { ResultActionState } from "@/lib/results/result-types";
 
 export async function unpublishResultsAction(uploadId: string): Promise<ResultActionState> {
-  const profile = await requireRole(["admin", "headmaster"]);
+  const profile = await requireCanPublishResults();
 
   if (!canPublishResultUpload(profile)) {
     return { ok: false, message: "Only admins and headmasters can unpublish results." };

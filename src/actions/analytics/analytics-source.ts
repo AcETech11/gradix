@@ -1,6 +1,6 @@
 import { cache } from "react";
 
-import { requireRole } from "@/lib/auth/session";
+import { requireCanViewAnalytics } from "@/lib/auth/authorization";
 import { analyticsFilterSchema, type AnalyticsFilterOptions, type AnalyticsFilters } from "@/lib/analytics/analytics-types";
 import { getTermRank, TERM_LABELS } from "@/lib/analytics/analytics-formatters";
 import { createClient } from "@/lib/supabase/server";
@@ -85,7 +85,7 @@ function applyPerformanceFilters(results: AnalyticsResultRow[], filters: Analyti
 }
 
 export const getAnalyticsSourceData = cache(async (input?: unknown): Promise<AnalyticsSourceData> => {
-  const profile = await requireRole(["admin", "headmaster"]);
+  const profile = await requireCanViewAnalytics();
   const filters = normalizeFilters(input);
   const supabase = await createClient();
 

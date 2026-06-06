@@ -20,12 +20,15 @@ declare
   normalized_code text;
   student_record public.students%rowtype;
   school_record public.schools%rowtype;
+  class_record public.classes%rowtype;
+  teacher_record public.users%rowtype;
   selected_group record;
   access_record public.code_term_access%rowtype;
   max_allowed integer;
   next_use_count integer;
   result_rows jsonb;
   term_options jsonb;
+  teacher_comment text;
 begin
   normalized_code := upper(regexp_replace(coalesce(input_code, ''), '\s+', '', 'g'));
 
@@ -121,6 +124,37 @@ begin
       'message', 'No published result is available for this student yet. Please contact the school.'
     );
   end if;
+
+  select *
+  into class_record
+  from public.classes
+  where id = selected_group.class_id
+    and school_id = student_record.school_id
+  limit 1;
+
+  if class_record.teacher_id is not null then
+    select *
+    into teacher_record
+    from public.users
+    where id = class_record.teacher_id
+      and school_id = student_record.school_id
+      and role = 'teacher'::public.app_role
+      and coalesce(is_active, true) = true
+    limit 1;
+  end if;
+
+  select r.metadata->>'class_teacher_comment'
+  into teacher_comment
+  from public.results r
+  where r.student_id = student_record.id
+    and r.school_id = student_record.school_id
+    and r.class_id = selected_group.class_id
+    and r.term = selected_group.term
+    and r.academic_year = selected_group.academic_year
+    and r.is_published = true
+    and r.metadata ? 'class_teacher_comment'
+  order by r.updated_at desc
+  limit 1;
 
   select *
   into access_record
@@ -231,7 +265,10 @@ begin
     'result', jsonb_build_object(
       'term', selected_group.term,
       'academicYear', selected_group.academic_year,
-      'className', coalesce((select name from public.classes where id = selected_group.class_id), 'Class'),
+      'className', coalesce(class_record.name, 'Class'),
+      'classTeacherName', teacher_record.full_name,
+      'classTeacherSignatureUrl', teacher_record.metadata->>'teacher_signature_url',
+      'classTeacherComment', teacher_comment,
       'publishedAt', selected_group.published_at,
       'rows', coalesce(result_rows, '[]'::jsonb)
     ),

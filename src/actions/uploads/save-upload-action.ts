@@ -42,7 +42,7 @@ export async function saveUploadAction(input: unknown): Promise<SaveUploadState>
     const rowsToInsert = rows.filter((row) => !row.isExistingDuplicate);
     const rowsToReplace = parsed.data.duplicateStrategy === "replace" ? rows.filter((row) => row.isExistingDuplicate) : [];
     const skippedRows = parsed.data.duplicateStrategy === "skip" ? rows.filter((row) => row.isExistingDuplicate).length : 0;
-    const uploadStatus: UploadStatus = context.profile.role === "teacher" ? "draft" : "validated";
+    const uploadStatus: UploadStatus = "validated";
     const subjectSummary = context.subjects.map((subject) => subject.name).join(", ");
     const uploadPayload = {
       school_id: context.profile.school_id,
@@ -131,6 +131,25 @@ export async function saveUploadAction(input: unknown): Promise<SaveUploadState>
         };
       }
     }
+
+    await context.supabase.from("audit_logs").insert({
+      school_id: context.profile.school_id,
+      actor_id: context.profile.id,
+      actor_role: context.profile.role,
+      action: "validate",
+      table_name: "result_uploads",
+      record_id: upload.id,
+      details: {
+        security_event: "result_upload_saved",
+        class_id: parsed.data.classId,
+        class_name: context.schoolClass.name,
+        term: parsed.data.term,
+        academic_year: parsed.data.academicYear,
+        inserted_rows: rowsToInsert.length,
+        replaced_rows: rowsToReplace.length,
+        skipped_rows: skippedRows,
+      },
+    });
 
     revalidatePath("/dashboard/uploads");
 

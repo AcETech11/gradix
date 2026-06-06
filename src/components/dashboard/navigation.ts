@@ -32,21 +32,25 @@ export const DASHBOARD_NAV_ITEMS: DashboardNavItem[] = [
     title: "Students",
     href: "/dashboard/students",
     icon: UsersRound,
+    roles: ["admin", "headmaster"],
   },
   {
     title: "Uploads",
     href: "/dashboard/uploads",
     icon: UploadCloud,
+    roles: ["admin", "headmaster"],
   },
   {
     title: "Templates",
     href: "/dashboard/templates",
     icon: FileSpreadsheet,
+    roles: ["admin", "headmaster"],
   },
   {
     title: "Results",
     href: "/dashboard/results",
     icon: FileBarChart2,
+    roles: ["admin", "headmaster"],
   },
   {
     title: "Analytics",
@@ -58,6 +62,7 @@ export const DASHBOARD_NAV_ITEMS: DashboardNavItem[] = [
     title: "Parent Access",
     href: "/dashboard/parent-access",
     icon: Fingerprint,
+    roles: ["admin", "headmaster"],
   },
   {
     title: "Audit Logs",

@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import type { ZodError } from "zod";
 
-import { requireRole } from "@/lib/auth/session";
+import { requireCanManageStudents } from "@/lib/auth/authorization";
 import { createClient } from "@/lib/supabase/server";
 import { getAuthErrorMessage } from "@/lib/auth/errors";
 import { studentFormSchema, studentImportRowsSchema, type StudentFormInput, type StudentImportRowsInput } from "@/lib/students/schema";
@@ -49,7 +49,7 @@ function normalizeGeneralError(error: unknown) {
 }
 
 async function ensureStudentAccess() {
-  return requireRole(["admin", "teacher"]);
+  return requireCanManageStudents();
 }
 
 async function generateStudentCode(supabase: Awaited<ReturnType<typeof createClient>>, schoolId: string) {
@@ -78,6 +78,17 @@ export async function createStudentAction(input: StudentFormInput): Promise<Auth
   try {
     const profile = await ensureStudentAccess();
     const supabase = await createClient();
+    const { data: classRecord, error: classError } = await supabase
+      .from("classes")
+      .select("id")
+      .eq("id", parsed.data.classId)
+      .eq("school_id", profile.school_id)
+      .maybeSingle();
+
+    if (classError || !classRecord) {
+      throw new Error("This record was not found in your school workspace.");
+    }
+
     const studentCode = await generateStudentCode(supabase, profile.school_id);
 
     const { data, error } = await supabase
@@ -92,6 +103,21 @@ export async function createStudentAction(input: StudentFormInput): Promise<Auth
     if (error) {
       throw error;
     }
+
+    await supabase.from("audit_logs").insert({
+      school_id: profile.school_id,
+      actor_id: profile.id,
+      actor_role: profile.role,
+      action: "insert",
+      table_name: "students",
+      record_id: data.id,
+      details: {
+        security_event: "student_created",
+        student_id: data.id,
+        student_code: data.permanent_code,
+        class_id: parsed.data.classId,
+      },
+    });
 
     revalidatePath("/dashboard/students");
     revalidatePath(`/dashboard/students/${data.id}`);
@@ -126,6 +152,16 @@ export async function updateStudentAction(
   try {
     const profile = await ensureStudentAccess();
     const supabase = await createClient();
+    const { data: classRecord, error: classError } = await supabase
+      .from("classes")
+      .select("id")
+      .eq("id", parsed.data.classId)
+      .eq("school_id", profile.school_id)
+      .maybeSingle();
+
+    if (classError || !classRecord) {
+      throw new Error("This record was not found in your school workspace.");
+    }
 
     const { data, error } = await supabase
       .from("students")
@@ -138,6 +174,21 @@ export async function updateStudentAction(
     if (error) {
       throw error;
     }
+
+    await supabase.from("audit_logs").insert({
+      school_id: profile.school_id,
+      actor_id: profile.id,
+      actor_role: profile.role,
+      action: "update",
+      table_name: "students",
+      record_id: data.id,
+      details: {
+        security_event: "student_updated",
+        student_id: data.id,
+        student_code: data.permanent_code,
+        class_id: parsed.data.classId,
+      },
+    });
 
     revalidatePath("/dashboard/students");
     revalidatePath(`/dashboard/students/${data.id}`);
@@ -178,6 +229,19 @@ export async function archiveStudentAction(studentId: string): Promise<AuthActio
     if (error) {
       throw error;
     }
+
+    await supabase.from("audit_logs").insert({
+      school_id: profile.school_id,
+      actor_id: profile.id,
+      actor_role: profile.role,
+      action: "delete",
+      table_name: "students",
+      record_id: studentId,
+      details: {
+        security_event: "student_archived",
+        student_id: studentId,
+      },
+    });
 
     revalidatePath("/dashboard/students");
     revalidatePath(`/dashboard/students/${studentId}`);
@@ -316,6 +380,19 @@ export async function importStudentsAction(
     if (error) {
       throw error;
     }
+
+    await supabase.from("audit_logs").insert({
+      school_id: profile.school_id,
+      actor_id: profile.id,
+      actor_role: profile.role,
+      action: "insert",
+      table_name: "students",
+      details: {
+        security_event: "students_imported",
+        imported: validRows.length,
+        skipped,
+      },
+    });
 
     revalidatePath("/dashboard/students");
 

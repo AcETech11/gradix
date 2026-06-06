@@ -41,7 +41,7 @@ export default async function ResultReviewPage({ params }: ResultReviewPageProps
 
       {hasPublishedRows && upload.canEdit ? <PostPublishEditWarning /> : null}
 
-      <ResultReviewTable canEdit={upload.canEdit} rows={rows} />
+      <ResultReviewTable canEdit={upload.canEdit} rows={rows} uploadId={upload.id} />
     </div>
   );
 }

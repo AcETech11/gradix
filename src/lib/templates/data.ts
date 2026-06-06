@@ -1,4 +1,4 @@
-import { requireRole } from "@/lib/auth/session";
+import { requireCanManageResultOperations } from "@/lib/auth/authorization";
 import { getCurrentAcademicYear } from "@/lib/onboarding/utils";
 import { createClient } from "@/lib/supabase/server";
 import type { TemplateClassOption } from "@/lib/templates/template-types";
@@ -9,7 +9,7 @@ type AssignmentPreviewRow = {
 };
 
 export async function getTemplatePageData() {
-  const profile = await requireRole(["admin", "headmaster", "teacher"]);
+  const profile = await requireCanManageResultOperations();
   const supabase = await createClient();
   const { data: classes, error: classesError } = await supabase
     .from("classes")

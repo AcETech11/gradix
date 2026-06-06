@@ -40,7 +40,7 @@ export function BrandingSettings({ schoolId, values, canEdit }: { schoolId: stri
       <div className="grid gap-4 lg:grid-cols-3">
         <ImageUploadField bucket="school-logos" disabled={!canEdit} label="School logo" schoolId={schoolId} value={logoUrl} onChange={(url) => setValue("logoUrl", url, { shouldDirty: true })} />
         <ImageUploadField bucket="school-logos" disabled={!canEdit} label="School crest / seal" schoolId={schoolId} value={sealUrl} onChange={(url) => setValue("sealUrl", url, { shouldDirty: true })} />
-        <ImageUploadField bucket="signatures" disabled={!canEdit} label="Principal signature" schoolId={schoolId} value={principalSignatureUrl} onChange={(url) => setValue("principalSignatureUrl", url, { shouldDirty: true })} />
+        <ImageUploadField bucket="signatures" disabled={!canEdit} fixedBaseName="signature" label="Principal signature" pathPrefix="principal" schoolId={schoolId} value={principalSignatureUrl} onChange={(url) => setValue("principalSignatureUrl", url, { shouldDirty: true })} />
       </div>
       <div className="grid gap-4 md:grid-cols-2">
         <ColorField label="Primary color" error={errors.primaryColor?.message} disabled={!canEdit} {...register("primaryColor")} />

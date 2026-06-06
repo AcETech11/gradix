@@ -13,7 +13,7 @@ type StudentEditPageProps = {
 export default async function StudentEditPage({ params }: StudentEditPageProps) {
   const profile = await getCurrentUserProfile();
 
-  if (!profile || (profile.role !== "admin" && profile.role !== "teacher")) {
+  if (!profile || profile.role !== "admin") {
     redirect("/dashboard/students");
   }
 

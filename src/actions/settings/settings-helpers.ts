@@ -1,7 +1,7 @@
 import { revalidatePath } from "next/cache";
 import type { ZodError } from "zod";
 
-import { requireRole } from "@/lib/auth/session";
+import { requireCanManageSettings, requireCanManageUsers, requireCanViewSettings } from "@/lib/auth/authorization";
 import { createClient } from "@/lib/supabase/server";
 import { getMetadataObject } from "@/lib/settings/settings-types";
 import type { AppRole, Json } from "@/types/database";
@@ -15,11 +15,15 @@ export function mapZodErrors(error: ZodError) {
 }
 
 export async function requireSettingsAdmin() {
-  return requireRole(["admin"]);
+  return requireCanManageSettings();
 }
 
 export async function requireSettingsViewer() {
-  return requireRole(["admin", "headmaster"]);
+  return requireCanViewSettings();
+}
+
+export async function requireUserManager() {
+  return requireCanManageUsers();
 }
 
 export async function getSchoolForUpdate(schoolId: string) {

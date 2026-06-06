@@ -1,11 +1,11 @@
-import { requireRole } from "@/lib/auth/session";
+import { requireCanManageResultOperations } from "@/lib/auth/authorization";
 import { getCurrentAcademicYear } from "@/lib/onboarding/utils";
 import { createClient } from "@/lib/supabase/server";
 import type { UploadClassOption, UploadStudent, UploadSubject } from "@/lib/uploads/upload-types";
 import type { SchoolTerm } from "@/types/database";
 
 export async function getUploadPageData() {
-  const profile = await requireRole(["admin", "headmaster", "teacher"]);
+  const profile = await requireCanManageResultOperations();
   const supabase = await createClient();
   const { data: classes, error: classesError } = await supabase
     .from("classes")
@@ -59,7 +59,7 @@ export async function getUploadPageData() {
 }
 
 export async function getUploadHistory() {
-  const profile = await requireRole(["admin", "headmaster", "teacher"]);
+  const profile = await requireCanManageResultOperations();
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("result_uploads")
@@ -86,7 +86,7 @@ export async function getUploadHistory() {
 }
 
 export async function getUploadDetail(uploadId: string) {
-  const profile = await requireRole(["admin", "headmaster", "teacher"]);
+  const profile = await requireCanManageResultOperations();
   const supabase = await createClient();
   const { data: upload, error: uploadError } = await supabase
     .from("result_uploads")
@@ -121,7 +121,7 @@ export async function getUploadDetail(uploadId: string) {
 }
 
 export async function getValidationContext(classId: string, term: SchoolTerm, academicYear: string) {
-  const profile = await requireRole(["admin", "headmaster", "teacher"]);
+  const profile = await requireCanManageResultOperations();
   const supabase = await createClient();
   const { data: schoolClass, error: classError } = await supabase
     .from("classes")
@@ -133,10 +133,6 @@ export async function getValidationContext(classId: string, term: SchoolTerm, ac
 
   if (classError || !schoolClass) {
     throw new Error("The selected class was not found for your school.");
-  }
-
-  if (profile.role === "teacher" && schoolClass.teacher_id && schoolClass.teacher_id !== profile.id) {
-    throw new Error("You are not allowed to upload results for this class.");
   }
 
   const { data: assignments, error: assignmentError } = await supabase

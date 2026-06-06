@@ -2,13 +2,12 @@
 
 import { revalidatePath } from "next/cache";
 
-import { requireRole } from "@/lib/auth/session";
-import { canEditResultScores } from "@/lib/results/permissions";
+import { requireCanManageResults } from "@/lib/auth/authorization";
 import { resultScoreSchema, type ResultActionState } from "@/lib/results/result-types";
 import { createClient } from "@/lib/supabase/server";
 
 export async function updateResultScoreAction(input: unknown): Promise<ResultActionState> {
-  const profile = await requireRole(["admin", "headmaster", "teacher"]);
+  const profile = await requireCanManageResults();
   const parsed = resultScoreSchema.safeParse(input);
 
   if (!parsed.success) {
@@ -16,13 +15,6 @@ export async function updateResultScoreAction(input: unknown): Promise<ResultAct
       ok: false,
       message: "Check the score values and try again.",
       fieldErrors: parsed.error.flatten().fieldErrors,
-    };
-  }
-
-  if (!canEditResultScores(profile)) {
-    return {
-      ok: false,
-      message: "Only admins can edit result scores.",
     };
   }
 

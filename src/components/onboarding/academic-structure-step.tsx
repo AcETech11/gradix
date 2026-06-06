@@ -59,6 +59,9 @@ export function AcademicStructureStep({ defaultValues, teachers, onSaved, onComp
 
   return (
     <form className="space-y-5" onSubmit={handleSubmit(save)}>
+      <div className="rounded-2xl border border-orange-200 bg-orange-50 px-4 py-3 text-sm leading-6 text-orange-900">
+        Teacher accounts are optional. You can download Excel templates, send them to teachers, and upload completed sheets yourself. Assign teachers here only if the school wants teachers to log in directly later.
+      </div>
       {fields.length === 0 ? (
         <EmptyState icon={Plus} title="No classes yet" description="Create the first class to start building your academic structure." />
       ) : null}

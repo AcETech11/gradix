@@ -24,7 +24,7 @@ export const ROLE_PERMISSIONS: Record<AuthRole, AuthPermission[]> = {
     "results:publish",
     "audit_logs:view",
   ],
-  teacher: ["dashboard:view", "results:edit", "students:manage"],
+  teacher: ["dashboard:view"],
 };
 
 export function isDashboardRole(role: string | null | undefined): role is AuthRole {
@@ -48,5 +48,5 @@ export function canAccessDashboardPath(role: AuthRole, pathname: string) {
     return true;
   }
 
-  return !pathname.startsWith("/dashboard/analytics") && !pathname.startsWith("/dashboard/audit") && !pathname.startsWith("/dashboard/settings");
+  return pathname === "/dashboard";
 }

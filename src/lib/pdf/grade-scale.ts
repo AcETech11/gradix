@@ -12,7 +12,7 @@ export function reportGradeMeaning(grade: string) {
     B: "Good",
     C: "Credit",
     D: "Pass",
-    F: "Fail",
+    F: "Needs Improvement",
   };
 
   return meanings[grade] ?? "Ungraded";

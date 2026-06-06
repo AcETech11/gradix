@@ -4,11 +4,13 @@ import type { TableRow } from "@/types/database";
 type UploadOwner = Pick<TableRow<"result_uploads">, "uploaded_by" | "status">;
 
 export function canViewResultUpload(profile: AuthProfile, upload: UploadOwner) {
+  void upload;
+
   if (profile.role === "admin" || profile.role === "headmaster") {
     return true;
   }
 
-  return upload.uploaded_by === profile.id;
+  return false;
 }
 
 export function canEditResultScores(profile: AuthProfile) {

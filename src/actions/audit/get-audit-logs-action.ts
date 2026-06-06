@@ -1,6 +1,6 @@
 "use server";
 
-import { requireRole } from "@/lib/auth/session";
+import { requireCanViewAuditLogs } from "@/lib/auth/authorization";
 import { auditFilterSchema, type AuditFilters, type AuditLogItem } from "@/lib/audit/audit-types";
 import { formatAuditSummary, matchesAuditSearch } from "@/lib/audit/format-audit-details";
 import { createClient } from "@/lib/supabase/server";
@@ -56,7 +56,7 @@ function detailsText(details: Json) {
 }
 
 export async function getAuditLogsAction(input?: unknown): Promise<AuditLogItem[]> {
-  const profile = await requireRole(["admin", "headmaster"]);
+  const profile = await requireCanViewAuditLogs();
   const filters = normalizeFilters(input);
   const supabase = await createClient();
 

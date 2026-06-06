@@ -6,6 +6,9 @@ export type PrintableReportData = PublicResultPayload & {
   printedAt: string;
   principalName: string;
   principalSignatureUrl: string | null;
+  classTeacherName: string;
+  classTeacherSignatureUrl: string | null;
+  classTeacherComment: string;
   reportSettings: ReportSettings;
   gradingScale: GradingBand[];
 };

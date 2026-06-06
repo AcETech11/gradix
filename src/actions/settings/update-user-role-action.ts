@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { userRoleSchema, type SettingsActionState } from "@/lib/settings/settings-types";
 import { createClient } from "@/lib/supabase/server";
 
-import { logSettingsAudit, mapZodErrors, requireSettingsAdmin } from "./settings-helpers";
+import { logSettingsAudit, mapZodErrors, requireUserManager } from "./settings-helpers";
 
 export async function updateUserRoleAction(input: unknown): Promise<SettingsActionState> {
   const parsed = userRoleSchema.safeParse(input);
@@ -15,7 +15,7 @@ export async function updateUserRoleAction(input: unknown): Promise<SettingsActi
   }
 
   try {
-    const profile = await requireSettingsAdmin();
+    const profile = await requireUserManager();
     const supabase = await createClient();
     const { data: user, error: userError } = await supabase
       .from("users")

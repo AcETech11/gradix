@@ -1,22 +1,18 @@
 "use server";
 
-import { requireRole } from "@/lib/auth/session";
+import { requireCanManageResultOperations } from "@/lib/auth/authorization";
 import { createClient } from "@/lib/supabase/server";
 import { canArchiveResultUpload, canPublishResultUpload, canViewResultUpload } from "@/lib/results/permissions";
 import type { ResultUploadListItem } from "@/lib/results/result-types";
 
 export async function getResultUploadsAction(): Promise<ResultUploadListItem[]> {
-  const profile = await requireRole(["admin", "headmaster", "teacher"]);
+  const profile = await requireCanManageResultOperations();
   const supabase = await createClient();
-  let query = supabase
+  const query = supabase
     .from("result_uploads")
     .select("id, class_id, class_name, term, academic_year, status, source_filename, file_name, total_rows, uploaded_by, created_at, published_at")
     .eq("school_id", profile.school_id)
     .order("created_at", { ascending: false });
-
-  if (profile.role === "teacher") {
-    query = query.eq("uploaded_by", profile.id);
-  }
 
   const { data: uploads, error } = await query;
 

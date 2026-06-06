@@ -169,6 +169,26 @@ export async function saveAcademicStructureAction(
     }
   }
 
+  const teacherIds = Array.from(new Set(parsed.data.classes.map((row) => row.teacherId).filter((id): id is string => Boolean(id))));
+
+  if (teacherIds.length > 0) {
+    const { data: validTeachers, error: teacherError } = await supabase
+      .from("users")
+      .select("id")
+      .eq("school_id", profile.school_id)
+      .eq("role", "teacher")
+      .eq("is_active", true)
+      .in("id", teacherIds);
+
+    if (teacherError) {
+      return saveErrorState(teacherError);
+    }
+
+    if ((validTeachers ?? []).length !== teacherIds.length) {
+      return validationErrorState("One or more selected teachers were not found in your school workspace.");
+    }
+  }
+
   for (const row of parsed.data.classes) {
     const payload = {
       school_id: profile.school_id,
@@ -240,6 +260,7 @@ export async function saveSubjectsAssignmentsAction(
 
   const supabase = await createClient();
   const incomingIds = parsed.data.subjects.map((row) => row.id).filter(Boolean);
+  const requestedClassIds = Array.from(new Set(parsed.data.subjects.flatMap((row) => row.classIds)));
   const { data: existingSubjects, error: existingError } = await supabase
     .from("subjects")
     .select("id")
@@ -247,6 +268,23 @@ export async function saveSubjectsAssignmentsAction(
 
   if (existingError) {
     return saveErrorState(existingError);
+  }
+
+  if (requestedClassIds.length > 0) {
+    const { data: validClasses, error: classesError } = await supabase
+      .from("classes")
+      .select("id")
+      .eq("school_id", profile.school_id)
+      .eq("is_active", true)
+      .in("id", requestedClassIds);
+
+    if (classesError) {
+      return saveErrorState(classesError);
+    }
+
+    if ((validClasses ?? []).length !== requestedClassIds.length) {
+      return validationErrorState("One or more selected classes were not found in your school workspace.");
+    }
   }
 
   const inactiveIds = existingSubjects.map((row) => row.id).filter((id) => !incomingIds.includes(id));
@@ -311,7 +349,7 @@ export async function saveSubjectsAssignmentsAction(
       };
 
       const assignmentResponse = existingAssignment
-        ? await supabase.from("class_subjects").update(payload).eq("id", existingAssignment.id)
+        ? await supabase.from("class_subjects").update(payload).eq("id", existingAssignment.id).eq("school_id", profile.school_id)
         : await supabase.from("class_subjects").insert(payload);
 
       if (assignmentResponse.error) {

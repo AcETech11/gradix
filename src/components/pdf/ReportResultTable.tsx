@@ -1,5 +1,6 @@
 import type { ParentResultRow } from "@/lib/parent-portal/parent-result-types";
 import { reportGradeFromScore, reportGradeMeaning } from "@/lib/pdf/grade-scale";
+import { getPerformanceBand } from "@/lib/results/performance-scale";
 
 export function ReportResultTable({ rows }: { rows: ParentResultRow[] }) {
   return (
@@ -18,19 +19,27 @@ export function ReportResultTable({ rows }: { rows: ParentResultRow[] }) {
           </tr>
         </thead>
         <tbody>
-          {rows.map((row) => (
-            <tr key={row.subject}>
-              <td className="report-subject-cell">{row.subject}</td>
-              <td>{row.ca}</td>
-              <td>{row.exam}</td>
-              <td>{row.total}</td>
-              <td>
-                <span className="report-grade-badge">{reportGradeFromScore(row.total)}</span>
-              </td>
-              <td className="report-remark-cell">{row.remark ?? reportGradeMeaning(reportGradeFromScore(row.total))}</td>
-              <td>{row.position ?? "-"}</td>
-            </tr>
-          ))}
+          {rows.map((row) => {
+            const grade = reportGradeFromScore(row.total);
+            const performance = getPerformanceBand(row.total);
+
+            return (
+              <tr key={row.subject}>
+                <td className="report-subject-cell">{row.subject}</td>
+                <td>{row.ca}</td>
+                <td>{row.exam}</td>
+                <td className={performance.printClassName}>
+                  <strong>{row.total}</strong>
+                </td>
+                <td className={performance.printClassName}>
+                  <span className="report-grade-badge">{grade}</span>
+                  <span className="report-performance-label">{reportGradeMeaning(grade)}</span>
+                </td>
+                <td className="report-remark-cell">{row.remark ?? reportGradeMeaning(grade)}</td>
+                <td>{row.position ?? "-"}</td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </section>

@@ -16,7 +16,7 @@ export default async function StudentProfilePage({ params }: StudentProfilePageP
     notFound();
   }
 
-  const canManage = data.profile.role === "admin" || data.profile.role === "teacher";
+  const canManage = data.profile.role === "admin";
 
   return (
     <div className="space-y-6">

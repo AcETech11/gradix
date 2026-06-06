@@ -9,6 +9,12 @@ export const resultScoreSchema = z.object({
   remark: z.string().trim().max(240, "Remark is too long.").optional(),
 });
 
+export const classTeacherCommentSchema = z.object({
+  uploadId: z.string().uuid(),
+  studentId: z.string().uuid(),
+  comment: z.string().trim().max(240, "Comment is too long."),
+});
+
 export type ResultScoreInput = z.infer<typeof resultScoreSchema>;
 export type ResultScoreFormValues = z.input<typeof resultScoreSchema>;
 
@@ -49,6 +55,7 @@ export type ResultReviewRow = {
   editedAt: string | null;
   editCount: number;
   editedAfterPublish: boolean;
+  classTeacherComment: string | null;
 };
 
 export type ResultUploadDetail = {
