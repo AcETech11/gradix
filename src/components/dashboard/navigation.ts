@@ -3,6 +3,7 @@ import {
   FileBarChart2,
   FileSpreadsheet,
   Fingerprint,
+  LineChart,
   LayoutDashboard,
   Settings2,
   ShieldAlert,
@@ -48,6 +49,12 @@ export const DASHBOARD_NAV_ITEMS: DashboardNavItem[] = [
     icon: FileBarChart2,
   },
   {
+    title: "Analytics",
+    href: "/dashboard/analytics",
+    icon: LineChart,
+    roles: ["admin", "headmaster"],
+  },
+  {
     title: "Parent Access",
     href: "/dashboard/parent-access",
     icon: Fingerprint,
@@ -72,6 +79,7 @@ export const DASHBOARD_BREADCRUMB_LABELS: Record<string, string> = {
   uploads: "Uploads",
   templates: "Templates",
   results: "Results",
+  analytics: "Analytics",
   "parent-access": "Parent Access",
   audit: "Audit Logs",
   settings: "Settings",

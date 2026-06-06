@@ -2,9 +2,11 @@ import Link from "next/link";
 import { formatDistanceToNow } from "date-fns";
 import { ArrowRight, Sparkles } from "lucide-react";
 
+import { getAnalyticsOverviewAction } from "@/actions/analytics/get-analytics-overview-action";
 import { getAuditLogsAction } from "@/actions/audit/get-audit-logs-action";
 import { Button } from "@/components/ui/button";
 import { getCurrentUserProfile } from "@/lib/auth/session";
+import { formatNumber, formatScore } from "@/lib/analytics/analytics-formatters";
 
 import { ActivityTimeline } from "./activity-timeline";
 import { PageHeader } from "./page-header";
@@ -34,11 +36,59 @@ function mapSensitiveAuditActivity(logs: Awaited<ReturnType<typeof getAuditLogsA
     }));
 }
 
+function mapAnalyticsStats(overview: Awaited<ReturnType<typeof getAnalyticsOverviewAction>>) {
+  return [
+    {
+      label: "Total Students",
+      value: formatNumber(overview.totalStudents),
+      change: "Live",
+      description: "Active students in this school workspace",
+      tone: "neutral" as const,
+      icon: "UsersRound" as const,
+    },
+    {
+      label: "Active Classes",
+      value: formatNumber(overview.activeClasses),
+      change: "Live",
+      description: "Classes currently configured",
+      tone: "neutral" as const,
+      icon: "BookOpenText" as const,
+    },
+    {
+      label: "Published Results",
+      value: formatNumber(overview.publishedResults),
+      change: formatScore(overview.averageScore),
+      description: "Published rows and average score",
+      tone: "positive" as const,
+      icon: "ShieldCheck" as const,
+    },
+    {
+      label: "Parent Result Checks",
+      value: formatNumber(overview.parentResultChecks),
+      change: "Verified",
+      description: "Result-code usage recorded",
+      tone: "neutral" as const,
+      icon: "GraduationCap" as const,
+    },
+    {
+      label: "Pending Uploads",
+      value: formatNumber(overview.pendingUploads),
+      change: "Open",
+      description: "Draft or validated uploads awaiting closure",
+      tone: overview.pendingUploads > 0 ? ("warning" as const) : ("positive" as const),
+      icon: "FileUp" as const,
+    },
+  ];
+}
+
 export async function DashboardHome() {
   const profile = await getCurrentUserProfile();
-  const recentAuditActivity =
-    profile?.role === "admin" || profile?.role === "headmaster" ? mapSensitiveAuditActivity(await getAuditLogsAction({})) : [];
+  const canViewLeadershipData = profile?.role === "admin" || profile?.role === "headmaster";
+  const [recentAuditActivity, analyticsOverview] = canViewLeadershipData
+    ? await Promise.all([getAuditLogsAction({}).then(mapSensitiveAuditActivity), getAnalyticsOverviewAction({})])
+    : [[], null];
   const activityItems = recentAuditActivity.length ? recentAuditActivity : RECENT_ACTIVITY;
+  const stats = analyticsOverview ? mapAnalyticsStats(analyticsOverview) : DASHBOARD_STATS;
 
   return (
     <div className="space-y-6">
@@ -58,7 +108,7 @@ export async function DashboardHome() {
       />
 
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5" aria-label="Dashboard summary">
-        {DASHBOARD_STATS.map((stat) => (
+        {stats.map((stat) => (
           <StatCard
             change={stat.change}
             description={stat.description}

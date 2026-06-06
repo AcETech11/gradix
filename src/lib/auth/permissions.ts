@@ -48,5 +48,5 @@ export function canAccessDashboardPath(role: AuthRole, pathname: string) {
     return !pathname.startsWith("/dashboard/settings");
   }
 
-  return !pathname.startsWith("/dashboard/audit") && !pathname.startsWith("/dashboard/settings");
+  return !pathname.startsWith("/dashboard/analytics") && !pathname.startsWith("/dashboard/audit") && !pathname.startsWith("/dashboard/settings");
 }
