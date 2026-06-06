@@ -297,6 +297,14 @@ export type Database = {
         Args: { target_upload_id: string };
         Returns: Json;
       };
+      get_public_student_result: {
+        Args: {
+          input_code: string;
+          requested_term?: SchoolTerm | null;
+          requested_academic_year?: string | null;
+        };
+        Returns: Json;
+      };
     };
     Enums: {
       app_role: AppRole;
