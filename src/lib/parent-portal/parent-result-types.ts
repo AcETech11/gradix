@@ -1,4 +1,6 @@
 import type { SchoolTerm } from "@/types/database";
+import type { GradingBand } from "@/lib/settings/default-grading-scale";
+import type { ReportSettings } from "@/lib/settings/report-settings-defaults";
 
 export type ParentResultRow = {
   subject: string;
@@ -29,6 +31,9 @@ export type PublicResultPayload = {
     motto: string | null;
     principalName: string | null;
     principalSignatureUrl: string | null;
+    sealUrl?: string | null;
+    reportSettings?: Partial<ReportSettings> | null;
+    gradingScale?: GradingBand[] | null;
   };
   student: {
     name: string;

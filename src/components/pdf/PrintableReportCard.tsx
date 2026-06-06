@@ -16,10 +16,10 @@ export function PrintableReportCard({ result }: { result: PublicResultPayload })
       <ReportHeader report={report} />
       <ReportStudentInfo report={report} />
       <ReportResultTable rows={report.result.rows} />
-      <ReportSummary report={report} />
-      <ReportGradingGuide />
+      {report.reportSettings.showPerformanceSummary ? <ReportSummary report={report} /> : null}
+      {report.reportSettings.showGradingGuide ? <ReportGradingGuide scale={report.gradingScale} /> : null}
       <ReportSignatureBlock report={report} />
-      <ReportFooter />
+      <ReportFooter report={report} />
     </article>
   );
 }

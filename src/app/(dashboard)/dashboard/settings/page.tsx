@@ -1,20 +1,32 @@
-import { Settings2 } from "lucide-react";
+import { redirect } from "next/navigation";
 
-import { PlaceholderPage } from "@/components/dashboard/placeholder-page";
+import { getSchoolSettingsAction } from "@/actions/settings/get-school-settings-action";
+import { getSchoolUsersAction } from "@/actions/settings/get-school-users-action";
+import { PageHeader } from "@/components/dashboard/page-header";
+import { SettingsLayout } from "@/components/settings/SettingsLayout";
+import { getCurrentSchool, getCurrentUserProfile } from "@/lib/auth/session";
 
-export default function SettingsPage() {
+export default async function SettingsPage() {
+  const [profile, school] = await Promise.all([getCurrentUserProfile(), getCurrentSchool()]);
+
+  if (!profile || !school) {
+    redirect("/login");
+  }
+
+  if (profile.role !== "admin" && profile.role !== "headmaster") {
+    redirect("/dashboard");
+  }
+
+  const [settings, users] = await Promise.all([getSchoolSettingsAction(), getSchoolUsersAction()]);
+
   return (
-    <PlaceholderPage
-      actionLabel="Update settings"
-      description="School, branding, and subscription settings will connect here when the settings module arrives."
-      emptyDescription="School settings have not been configured yet."
-      emptyTitle="No settings yet"
-      eyebrow="Settings"
-      filterPlaceholder="Search settings"
-      icon={Settings2}
-      tableDescription="Account, branding, and school preferences will be organized here later."
-      tableTitle="School settings"
-      title="Settings is the control surface for later phases."
-    />
+    <div className="space-y-6">
+      <PageHeader
+        eyebrow="Settings"
+        title="Workspace settings and customization"
+        description="Customize school profile, branding, report appearance, grading rules, staff access, and account security."
+      />
+      <SettingsLayout profile={profile} school={school} settings={settings} users={users} />
+    </div>
   );
 }

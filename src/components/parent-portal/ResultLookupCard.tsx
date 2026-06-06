@@ -26,7 +26,7 @@ export function ResultLookupCard({ code, result }: ResultLookupCardProps) {
           <TermSelector code={code} currentAcademicYear={result.result.academicYear} currentTerm={result.result.term} options={result.termOptions} />
           <AccessCounter maxUses={result.access.maxUses} remaining={result.access.remaining} useCount={result.access.useCount} />
         </div>
-        <ResultSummaryCards rows={result.result.rows} />
+        {result.school.reportSettings?.showPerformanceSummary !== false ? <ResultSummaryCards rows={result.result.rows} /> : null}
         <ParentResultTable rows={result.result.rows} />
       </div>
       <PrintableReportCard result={result} />

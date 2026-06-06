@@ -18,14 +18,14 @@ export function ReportHeader({ report }: { report: PrintableReportData }) {
         </div>
         <div className="report-school">
           <h1>{report.school.name}</h1>
-          {report.school.motto ? <p className="report-motto">{report.school.motto}</p> : null}
+          {report.reportSettings.showSchoolMotto && report.school.motto ? <p className="report-motto">{report.school.motto}</p> : null}
           {report.school.address ? <p>{report.school.address}</p> : null}
           <p>{[report.school.phone, report.school.email].filter(Boolean).join(" | ")}</p>
         </div>
       </div>
       <div className="report-title-bar">
-        <strong>OFFICIAL STUDENT RESULT REPORT</strong>
-        <span>This result was published by the school and verified through Gradix.</span>
+        <strong>{report.reportSettings.reportTitle}</strong>
+        <span>{report.reportSettings.footerNote}</span>
       </div>
     </header>
   );

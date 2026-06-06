@@ -45,7 +45,7 @@ export function canAccessDashboardPath(role: AuthRole, pathname: string) {
   }
 
   if (role === "headmaster") {
-    return !pathname.startsWith("/dashboard/settings");
+    return true;
   }
 
   return !pathname.startsWith("/dashboard/analytics") && !pathname.startsWith("/dashboard/audit") && !pathname.startsWith("/dashboard/settings");

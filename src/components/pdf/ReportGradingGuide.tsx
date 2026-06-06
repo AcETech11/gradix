@@ -1,21 +1,15 @@
-export function ReportGradingGuide() {
-  const guide = [
-    ["70-100", "A", "Excellent"],
-    ["60-69", "B", "Good"],
-    ["50-59", "C", "Credit"],
-    ["40-49", "D", "Pass"],
-    ["0-39", "F", "Fail"],
-  ];
+import type { GradingBand } from "@/lib/settings/default-grading-scale";
 
+export function ReportGradingGuide({ scale }: { scale: GradingBand[] }) {
   return (
     <section className="report-section report-compact">
       <h2>Grading Guide</h2>
       <div className="report-grade-grid">
-        {guide.map(([range, grade, meaning]) => (
-          <div key={grade}>
-            <strong>{grade}</strong>
-            <span>{range}</span>
-            <em>{meaning}</em>
+        {scale.map((band) => (
+          <div key={`${band.grade}-${band.min}-${band.max}`}>
+            <strong>{band.grade}</strong>
+            <span>{band.min}-{band.max}</span>
+            <em>{band.remark}</em>
           </div>
         ))}
       </div>

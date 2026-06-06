@@ -8,11 +8,11 @@ export function ReportSignatureBlock({ report }: { report: PrintableReportData }
       <div className="report-comment-grid">
         <div className="report-comment">
           <span>Class Teacher Comment</span>
-          <p />
+          <p>{report.reportSettings.classTeacherComment}</p>
         </div>
         <div className="report-comment">
           <span>Principal Comment</span>
-          <p />
+          <p>{report.reportSettings.principalComment}</p>
         </div>
       </div>
       <div className="report-signature-grid">
@@ -35,7 +35,7 @@ export function ReportSignatureBlock({ report }: { report: PrintableReportData }
           <span>Date Printed</span>
         </div>
         <div className="report-stamp-box">
-          <strong>School Stamp / Seal</strong>
+          <strong>{report.reportSettings.nextTermBegins ? `Next Term: ${new Date(report.reportSettings.nextTermBegins).toLocaleDateString()}` : "School Stamp / Seal"}</strong>
           <span>Official validation area</span>
         </div>
       </div>

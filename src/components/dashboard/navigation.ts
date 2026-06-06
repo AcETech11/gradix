@@ -69,7 +69,7 @@ export const DASHBOARD_NAV_ITEMS: DashboardNavItem[] = [
     title: "Settings",
     href: "/dashboard/settings",
     icon: Settings2,
-    roles: ["admin"],
+    roles: ["admin", "headmaster"],
   },
 ];
 
