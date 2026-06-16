@@ -18,13 +18,14 @@ function sanitizeFilePart(value: string) {
 
 function getTemplateRows(input: ResultTemplateWorkbookInput) {
   const instruction = [
-    "Do not edit Student Code, Student Name, Admission Number, or Class. Only fill CA, Exam, and Remark columns.",
+    "Do not edit Student Code, Student Name, Admission Number, or Class. Fill CA, Exam, subject remarks, and Class Teacher Comment.",
   ];
   const headers = ["Student Code", "Student Name", "Admission Number", "Class"];
 
   input.subjects.forEach((subject) => {
     headers.push(`${subject.name} CA (0-40)`, `${subject.name} Exam (0-60)`, `${subject.name} Remark`);
   });
+  headers.push("Class Teacher Comment");
 
   const students =
     input.students.length > 0
@@ -44,6 +45,7 @@ function getTemplateRows(input: ResultTemplateWorkbookInput) {
     input.subjects.forEach(() => {
       row.push("", "", "");
     });
+    row.push("");
 
     return row;
   });
@@ -118,10 +120,11 @@ function buildInstructionsSheet(input: ResultTemplateWorkbookInput) {
     ["Instruction"],
     ["Each row is one student."],
     ["Do not edit Student Code, Student Name, Admission Number, or Class."],
-    ["Only fill columns ending with CA (0-40), Exam (0-60), and Remark."],
+    ["Fill columns ending with CA (0-40), Exam (0-60), Remark, and Class Teacher Comment."],
     ["CA score columns must contain numbers from 0 to 40."],
     ["Exam score columns must contain numbers from 0 to 60."],
     ["Remark columns are optional."],
+    ["Class Teacher Comment is optional and applies to that student's report card."],
     ["Do not rename headers."],
     ["Do not delete columns."],
     ["Save as .xlsx before uploading."],
@@ -132,6 +135,7 @@ function buildInstructionsSheet(input: ResultTemplateWorkbookInput) {
       [`${subject.name} Exam (0-60)`, "Enter exam score."],
       [`${subject.name} Remark`, "Optional teacher comment."],
     ]),
+    ["Class Teacher Comment", "Optional per-student class teacher report comment."],
   ]);
 }
 

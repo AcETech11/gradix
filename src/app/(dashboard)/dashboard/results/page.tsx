@@ -18,7 +18,7 @@ export default async function ResultsPage() {
 
       {uploads.length === 0 ? (
         <EmptyState
-          description="Validated result uploads will appear here after Phase 8 uploads are saved."
+          description="Upload and validate result sheets to review, publish, and export official results."
           icon={FileBarChart2}
           title="No result uploads yet"
         />

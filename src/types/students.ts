@@ -1,6 +1,6 @@
 import type { TableRow } from "@/types/database";
 
-export type StudentStatus = "active" | "inactive" | "graduated" | "archived";
+export type StudentStatus = "active" | "inactive" | "repeated" | "graduated" | "transferred" | "withdrawn" | "archived";
 export type StudentGender = "male" | "female" | "other";
 
 export type StudentRecord = TableRow<"students">;
@@ -31,14 +31,15 @@ export type StudentFormValues = {
 };
 
 export type StudentImportRow = {
-  studentCode?: string;
+  studentName: string;
   admissionNumber: string;
-  firstName: string;
-  lastName: string;
-  gender: StudentGender;
+  gender?: StudentGender | "";
+  dateOfBirth?: string;
   className: string;
-  parentName: string;
-  parentPhone: string;
+  parentName?: string;
+  parentPhone?: string;
+  parentEmail?: string;
+  address?: string;
 };
 
 export type StudentImportPreviewRow = StudentImportRow & {

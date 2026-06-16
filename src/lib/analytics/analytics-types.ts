@@ -30,6 +30,7 @@ export type AnalyticsFilterOptions = {
 export type AnalyticsOverview = {
   totalStudents: number;
   activeClasses: number;
+  totalSubjects: number;
   publishedResults: number;
   pendingUploads: number;
   parentResultChecks: number;

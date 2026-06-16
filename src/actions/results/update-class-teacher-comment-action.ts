@@ -19,13 +19,32 @@ export async function updateClassTeacherCommentAction(input: unknown): Promise<R
   const supabase = await createClient();
   const { data: rows, error: rowsError } = await supabase
     .from("results")
-    .select("id, metadata")
+    .select("id, metadata, class_id, term, academic_year, is_published")
     .eq("school_id", profile.school_id)
     .eq("upload_id", parsed.data.uploadId)
     .eq("student_id", parsed.data.studentId);
 
   if (rowsError || !rows?.length) {
     return { ok: false, message: rowsError?.message ?? "Result rows were not found for this student." };
+  }
+
+  const firstRow = rows[0];
+  const { error: reportError } = await supabase.from("student_term_reports").upsert(
+    {
+      school_id: profile.school_id,
+      student_id: parsed.data.studentId,
+      class_id: firstRow.class_id,
+      academic_year: firstRow.academic_year,
+      term: firstRow.term,
+      upload_id: parsed.data.uploadId,
+      class_teacher_comment: parsed.data.comment,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "school_id,student_id,class_id,academic_year,term" },
+  );
+
+  if (reportError) {
+    return { ok: false, message: reportError.message };
   }
 
   for (const row of rows) {
@@ -51,6 +70,7 @@ export async function updateClassTeacherCommentAction(input: unknown): Promise<R
       event: "class_teacher_comment_updated",
       upload_id: parsed.data.uploadId,
       student_id: parsed.data.studentId,
+      edited_after_publish: rows.some((row) => row.is_published),
     },
   });
 

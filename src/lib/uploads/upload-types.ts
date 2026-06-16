@@ -51,6 +51,7 @@ export type ParsedTemplateRow = {
   studentName: string;
   admissionNumber: string;
   className: string;
+  classTeacherComment: string;
   values: Record<string, string | number | null>;
 };
 
@@ -79,6 +80,7 @@ export type UploadPreviewRow = {
   total: number | null;
   grade: string;
   remark: string;
+  classTeacherComment: string;
   errors: string[];
   warnings: string[];
   isExistingDuplicate: boolean;

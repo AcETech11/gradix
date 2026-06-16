@@ -7,6 +7,7 @@ export const resultScoreSchema = z.object({
   continuousAssessment: z.coerce.number().min(0, "CA must be at least 0.").max(40, "CA must be 0 to 40."),
   examScore: z.coerce.number().min(0, "Exam must be at least 0.").max(60, "Exam must be 0 to 60."),
   remark: z.string().trim().max(240, "Remark is too long.").optional(),
+  reasonForEdit: z.string().trim().optional(),
 });
 
 export const classTeacherCommentSchema = z.object({

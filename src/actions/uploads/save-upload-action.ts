@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
+import { requireActiveBillingForSchool } from "@/lib/billing/guards";
 import { getValidationContext } from "@/lib/uploads/data";
 import { uploadValidationSchema, type SaveUploadState } from "@/lib/uploads/upload-types";
 import { getSavableRows, validateResultUpload } from "@/lib/uploads/validate-result-upload";
@@ -20,6 +21,7 @@ export async function saveUploadAction(input: unknown): Promise<SaveUploadState>
 
   try {
     const context = await getValidationContext(parsed.data.classId, parsed.data.term, parsed.data.academicYear);
+    await requireActiveBillingForSchool(context.profile.school_id);
     const validation = validateResultUpload({
       fileBase64: parsed.data.fileBase64,
       className: context.schoolClass.name,
@@ -94,6 +96,11 @@ export async function saveUploadAction(input: unknown): Promise<SaveUploadState>
           exam_score: row.exam ?? 0,
           grade: row.grade,
           remark: row.remark || null,
+          metadata: row.classTeacherComment
+            ? {
+                class_teacher_comment: row.classTeacherComment,
+              }
+            : {},
           is_published: false,
         })),
       );
@@ -115,6 +122,11 @@ export async function saveUploadAction(input: unknown): Promise<SaveUploadState>
           exam_score: row.exam ?? 0,
           grade: row.grade,
           remark: row.remark || null,
+          metadata: row.classTeacherComment
+            ? {
+                class_teacher_comment: row.classTeacherComment,
+              }
+            : {},
           is_published: false,
         })
         .eq("school_id", context.profile.school_id)
@@ -129,6 +141,36 @@ export async function saveUploadAction(input: unknown): Promise<SaveUploadState>
           ok: false,
           message: error.message,
         };
+      }
+    }
+
+    const commentByStudent = new Map<string, string>();
+    rows.forEach((row) => {
+      if (row.studentId && row.classTeacherComment.trim() && !commentByStudent.has(row.studentId)) {
+        commentByStudent.set(row.studentId, row.classTeacherComment.trim());
+      }
+    });
+
+    if (commentByStudent.size > 0) {
+      const { error } = await context.supabase.from("student_term_reports").upsert(
+        Array.from(commentByStudent.entries()).map(([studentId, comment]) => ({
+          school_id: context.profile.school_id,
+          student_id: studentId,
+          class_id: parsed.data.classId,
+          academic_year: parsed.data.academicYear,
+          term: parsed.data.term,
+          upload_id: upload.id,
+          class_teacher_comment: comment,
+          class_teacher_id: context.schoolClass.teacher_id || null,
+          updated_at: new Date().toISOString(),
+        })),
+        {
+          onConflict: "school_id,student_id,class_id,academic_year,term",
+        },
+      );
+
+      if (error) {
+        return { ok: false, message: error.message };
       }
     }
 

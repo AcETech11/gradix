@@ -45,9 +45,9 @@ function isOnboardingComplete(metadata: unknown) {
 }
 
 function logAuthDebug(message: string, details: Record<string, unknown>) {
-  if (process.env.NODE_ENV !== "production") {
-    console.log(`[gradix-auth] ${message}`, details);
-  }
+  void message;
+  void details;
+  return;
 }
 
 export async function loginAction(input: unknown): Promise<AuthActionState<LoginRedirect>> {
@@ -214,11 +214,7 @@ export async function loginAction(input: unknown): Promise<AuthActionState<Login
         redirectTo,
       },
     };
-  } catch (error) {
-    if (process.env.NODE_ENV !== "production") {
-      console.error("Gradix login action failed", error);
-    }
-
+  } catch {
     return {
       ok: false,
       message: "Sign in could not be completed. Check your connection and try again.",

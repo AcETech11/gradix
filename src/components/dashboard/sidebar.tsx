@@ -34,17 +34,21 @@ function getRoleLabel(role: AuthRole) {
 export function Sidebar({ role, school, profile }: SidebarProps) {
   const pathname = usePathname();
   const items = useMemo(() => getVisibleDashboardNavItems(role), [role]);
-  const [collapsed, setCollapsed] = useState(() => {
-    if (typeof window === "undefined") {
-      return false;
-    }
-
-    return window.localStorage.getItem("gradix-dashboard-sidebar-collapsed") === "true";
-  });
+  const [collapsed, setCollapsed] = useState(false);
 
   useEffect(() => {
-    window.localStorage.setItem("gradix-dashboard-sidebar-collapsed", String(collapsed));
-  }, [collapsed]);
+    // The first client render must match SSR; stored preferences are applied after hydration.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setCollapsed(window.localStorage.getItem("gradix-dashboard-sidebar-collapsed") === "true");
+  }, []);
+
+  function toggleCollapsed() {
+    setCollapsed((value) => {
+      const next = !value;
+      window.localStorage.setItem("gradix-dashboard-sidebar-collapsed", String(next));
+      return next;
+    });
+  }
 
   return (
     <aside
@@ -72,7 +76,7 @@ export function Sidebar({ role, school, profile }: SidebarProps) {
         <Button
           aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
           className="shrink-0 border border-white/10 bg-white/5 text-slate-200 hover:bg-white/10"
-          onClick={() => setCollapsed((value) => !value)}
+          onClick={toggleCollapsed}
           size="icon"
           type="button"
           variant="ghost"
@@ -81,7 +85,7 @@ export function Sidebar({ role, school, profile }: SidebarProps) {
         </Button>
       </div>
 
-      <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4">
+      <nav className="dashboard-sidebar-scroll flex-1 space-y-1 overflow-y-auto px-3 py-4">
         {items.map((item) => {
           const isActive =
             item.href === "/dashboard" ? pathname === item.href : pathname === item.href || pathname.startsWith(`${item.href}/`);

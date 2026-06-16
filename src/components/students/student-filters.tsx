@@ -67,7 +67,10 @@ export function StudentFilters({ query, classId, status, classes }: StudentFilte
           <option value="all">All statuses</option>
           <option value="active">Active</option>
           <option value="inactive">Inactive</option>
+          <option value="repeated">Repeated</option>
           <option value="graduated">Graduated</option>
+          <option value="transferred">Transferred</option>
+          <option value="withdrawn">Withdrawn</option>
           <option value="archived">Archived</option>
         </select>
       </div>

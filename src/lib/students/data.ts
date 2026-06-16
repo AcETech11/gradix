@@ -67,7 +67,7 @@ export function toStudentWritePayload(values: StudentFormValues, schoolId: strin
     admission_number: trimmedAdmissionNumber || null,
     passport_url: trimmedPassportUrl || null,
     status: values.status as StudentStatus,
-    is_active: values.status === "active",
+    is_active: values.status === "active" || values.status === "repeated",
     graduated_at: isGraduated ? today : null,
     metadata: {
       source: "manual",

@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { requireCanPublishResults } from "@/lib/auth/authorization";
+import { requireActiveBillingForSchool } from "@/lib/billing/guards";
 import { canPublishResultUpload, canViewResultUpload } from "@/lib/results/permissions";
 import { createClient } from "@/lib/supabase/server";
 import type { ResultActionState } from "@/lib/results/result-types";
@@ -13,6 +14,8 @@ export async function publishResultsAction(uploadId: string): Promise<ResultActi
   if (!canPublishResultUpload(profile)) {
     return { ok: false, message: "Only admins and headmasters can publish results." };
   }
+
+  await requireActiveBillingForSchool(profile.school_id);
 
   const supabase = await createClient();
   const { data: upload, error: uploadError } = await supabase
@@ -64,6 +67,22 @@ export async function publishResultsAction(uploadId: string): Promise<ResultActi
   if (uploadUpdateError) {
     return { ok: false, message: uploadUpdateError.message };
   }
+
+  await supabase
+    .from("student_term_reports")
+    .update({ published_at: publishedAt })
+    .eq("school_id", profile.school_id)
+    .eq("class_id", upload.class_id)
+    .eq("term", upload.term)
+    .eq("academic_year", upload.academic_year)
+    .eq("upload_id", upload.id);
+
+  await supabase.rpc("recalculate_result_positions", {
+    target_school_id: profile.school_id,
+    target_class_id: upload.class_id,
+    target_term: upload.term,
+    target_academic_year: upload.academic_year,
+  });
 
   await supabase.from("audit_logs").insert({
     school_id: profile.school_id,

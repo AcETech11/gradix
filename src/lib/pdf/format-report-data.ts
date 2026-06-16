@@ -4,6 +4,7 @@ import type { PublicResultPayload } from "@/lib/parent-portal/parent-result-type
 import { DEFAULT_GRADING_SCALE } from "@/lib/settings/default-grading-scale";
 import { DEFAULT_REPORT_SETTINGS } from "@/lib/settings/report-settings-defaults";
 import { getPerformanceBand } from "@/lib/results/performance-scale";
+import { resolveClassTeacherSignatureUrl, resolvePrincipalSignatureUrl, resolveSchoolLogoUrl, resolveSchoolSealUrl } from "@/lib/reports/report-assets";
 
 function defaultTeacherComment(result: PublicResultPayload) {
   const total = result.result.rows.reduce((sum, row) => sum + Number(row.total ?? 0), 0);
@@ -17,14 +18,20 @@ export function formatReportData(result: PublicResultPayload): PrintableReportDa
     ...DEFAULT_REPORT_SETTINGS,
     ...(result.school.reportSettings ?? {}),
   };
+  const school = {
+    ...result.school,
+    logoUrl: resolveSchoolLogoUrl(result.school) ?? null,
+    sealUrl: resolveSchoolSealUrl(result.school) ?? null,
+  };
 
   return {
     ...result,
+    school,
     printedAt: new Date().toISOString(),
-    principalName: result.school.principalName || "Principal",
-    principalSignatureUrl: result.school.principalSignatureUrl,
+    principalName: school.principalName || "Principal / Head Teacher",
+    principalSignatureUrl: resolvePrincipalSignatureUrl(school),
     classTeacherName: result.result.classTeacherName || "Class Teacher",
-    classTeacherSignatureUrl: result.result.classTeacherSignatureUrl ?? null,
+    classTeacherSignatureUrl: resolveClassTeacherSignatureUrl({ classTeacherSignatureUrl: result.result.classTeacherSignatureUrl ?? null }),
     classTeacherComment: result.result.classTeacherComment || reportSettings.classTeacherComment || defaultTeacherComment(result),
     reportSettings,
     gradingScale: result.school.gradingScale?.length ? result.school.gradingScale : DEFAULT_GRADING_SCALE,

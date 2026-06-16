@@ -20,6 +20,15 @@ export type SchoolSettings = {
 };
 
 export type SchoolUser = Pick<TableRow<"users">, "id" | "full_name" | "email" | "role" | "is_active" | "created_at" | "metadata">;
+export type SchoolInvitation = Pick<TableRow<"staff_invitations">, "id" | "full_name" | "email" | "role" | "status" | "expires_at" | "created_at" | "token">;
+export type SchoolStaff = TableRow<"school_staff">;
+export type SchoolClassAssignment = {
+  id: string;
+  name: string;
+  academicYear: string;
+  isActive: boolean;
+  classTeacherStaffId: string;
+};
 
 export const schoolProfileSchema = z.object({
   name: z.string().min(2, "School name is required."),

@@ -3,6 +3,9 @@ import {
   FileBarChart2,
   FileSpreadsheet,
   Fingerprint,
+  GraduationCap,
+  HelpCircle,
+  CreditCard,
   LineChart,
   LayoutDashboard,
   Settings2,
@@ -65,6 +68,18 @@ export const DASHBOARD_NAV_ITEMS: DashboardNavItem[] = [
     roles: ["admin", "headmaster"],
   },
   {
+    title: "Billing",
+    href: "/dashboard/billing",
+    icon: CreditCard,
+    roles: ["admin"],
+  },
+  {
+    title: "Promotion",
+    href: "/dashboard/promotion",
+    icon: GraduationCap,
+    roles: ["admin", "headmaster"],
+  },
+  {
     title: "Audit Logs",
     href: "/dashboard/audit",
     icon: ShieldAlert,
@@ -76,6 +91,11 @@ export const DASHBOARD_NAV_ITEMS: DashboardNavItem[] = [
     icon: Settings2,
     roles: ["admin", "headmaster"],
   },
+  {
+    title: "Help",
+    href: "/dashboard/help",
+    icon: HelpCircle,
+  },
 ];
 
 export const DASHBOARD_BREADCRUMB_LABELS: Record<string, string> = {
@@ -86,8 +106,11 @@ export const DASHBOARD_BREADCRUMB_LABELS: Record<string, string> = {
   results: "Results",
   analytics: "Analytics",
   "parent-access": "Parent Access",
+  billing: "Billing",
+  promotion: "Promotion",
   audit: "Audit Logs",
   settings: "Settings",
+  help: "Help",
 };
 
 export function getVisibleDashboardNavItems(role: AuthRole) {

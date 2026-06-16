@@ -3,6 +3,7 @@ import * as XLSX from "xlsx";
 import type { ParsedResultTemplate, ParsedSubjectColumns, ParsedTemplateRow } from "@/lib/uploads/upload-types";
 
 const REQUIRED_IDENTITY_HEADERS = ["Student Code", "Student Name", "Admission Number", "Class"] as const;
+const CLASS_TEACHER_COMMENT_HEADER = "Class Teacher Comment";
 
 function normalizeHeader(value: unknown) {
   return String(value ?? "").trim();
@@ -80,6 +81,10 @@ export function parseResultTemplate(base64: string): ParsedResultTemplate {
       return;
     }
 
+    if (header === CLASS_TEACHER_COMMENT_HEADER) {
+      return;
+    }
+
     const parsed = parseSubjectHeader(header);
 
     if (!parsed) {
@@ -112,6 +117,7 @@ export function parseResultTemplate(base64: string): ParsedResultTemplate {
         studentName: cellValueToText(rawRow[headerIndexes.get("Student Name") ?? -1]),
         admissionNumber: cellValueToText(rawRow[headerIndexes.get("Admission Number") ?? -1]),
         className: cellValueToText(rawRow[headerIndexes.get("Class") ?? -1]),
+        classTeacherComment: cellValueToText(rawRow[headerIndexes.get(CLASS_TEACHER_COMMENT_HEADER) ?? -1]),
         values,
       };
     })

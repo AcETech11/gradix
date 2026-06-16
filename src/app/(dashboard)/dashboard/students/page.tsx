@@ -5,6 +5,7 @@ import { EmptyState } from "@/components/dashboard/empty-state";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { Button } from "@/components/ui/button";
 import { StudentFilters } from "@/components/students/student-filters";
+import { ExportStudentsButton } from "@/components/students/export-students-button";
 import { StudentImportPanel } from "@/components/students/student-import-panel";
 import { StudentTable } from "@/components/students/student-table";
 import { getStudentsPageData } from "@/lib/students/data";
@@ -52,8 +53,8 @@ export default async function StudentsPage({ searchParams }: StudentsPageProps) 
               canManage={canManage}
               classes={data.classes}
               existingAdmissionNumbers={data.existingAdmissions}
-              existingStudentCodes={data.existingStudentCodes}
             />
+            {data.profile.role === "admin" || data.profile.role === "headmaster" ? <ExportStudentsButton disabled={data.pagination.total === 0} filters={params} /> : null}
             {canManage ? (
               <Button asChild className="bg-orange-500 text-slate-950 hover:bg-orange-400">
                 <Link href="/dashboard/students/new">
@@ -109,17 +110,21 @@ export default async function StudentsPage({ searchParams }: StudentsPageProps) 
         <EmptyState
           action={
             canManage ? (
-              <Button asChild className="bg-orange-500 text-slate-950 hover:bg-orange-400">
-                <Link href="/dashboard/students/new">
-                  <Plus className="size-4" />
-                  Add first student
-                </Link>
-              </Button>
+              <div className="flex flex-wrap justify-center gap-2">
+                <StudentImportPanel canManage={canManage} classes={data.classes} existingAdmissionNumbers={data.existingAdmissions} />
+                <ExportStudentsButton disabled filters={params} />
+                <Button asChild className="bg-orange-500 text-slate-950 hover:bg-orange-400">
+                  <Link href="/dashboard/students/new">
+                    <Plus className="size-4" />
+                    Add Student
+                  </Link>
+                </Button>
+              </div>
             ) : undefined
           }
-          description="Add your first student to start publishing results."
+          description="Add students manually or upload a completed student template to get started faster."
           icon={Plus}
-          title="No students found"
+          title="No students added yet."
         />
       )}
     </div>

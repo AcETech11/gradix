@@ -233,6 +233,7 @@ export function validateResultUpload(options: ValidateResultUploadOptions): Uplo
         total,
         grade: total === null ? "N/A" : calculateGrade(total).grade,
         remark,
+        classTeacherComment: templateRow.classTeacherComment,
         errors,
         warnings,
         isExistingDuplicate,

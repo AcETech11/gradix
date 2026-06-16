@@ -5,7 +5,8 @@ export type SubscriptionStatus = "trialing" | "active" | "past_due" | "paused" |
 export type SchoolTerm = "first" | "second" | "third";
 export type UploadStatus = "draft" | "validating" | "validated" | "failed" | "published" | "archived";
 export type AuditAction = "insert" | "update" | "delete" | "publish" | "unpublish" | "validate";
-export type StudentStatus = "active" | "inactive" | "graduated" | "archived";
+export type StudentStatus = "active" | "inactive" | "repeated" | "graduated" | "transferred" | "withdrawn" | "archived";
+export type StudentEnrollmentStatus = "active" | "promoted" | "repeated" | "graduated" | "transferred" | "withdrawn" | "archived";
 
 export type Database = {
   public: {
@@ -33,6 +34,8 @@ export type Database = {
           subscription_plan: string;
           subscription_started_at: string | null;
           subscription_ends_at: string | null;
+          subscription_expires_at: string | null;
+          student_limit: number | null;
           metadata: Json;
           created_at: string;
           updated_at: string;
@@ -59,6 +62,115 @@ export type Database = {
         Insert: Partial<Database["public"]["Tables"]["users"]["Row"]> &
           Pick<Database["public"]["Tables"]["users"]["Row"], "id" | "school_id" | "full_name">;
         Update: Partial<Database["public"]["Tables"]["users"]["Row"]>;
+        Relationships: [];
+      };
+      demo_requests: {
+        Row: {
+          id: string;
+          full_name: string;
+          school_name: string;
+          role: string | null;
+          phone: string;
+          email: string | null;
+          student_count: number | null;
+          student_count_range: string | null;
+          preferred_plan: string | null;
+          message: string | null;
+          status: string;
+          created_at: string;
+        };
+        Insert: Partial<Database["public"]["Tables"]["demo_requests"]["Row"]> &
+          Pick<Database["public"]["Tables"]["demo_requests"]["Row"], "full_name" | "school_name" | "phone">;
+        Update: Partial<Database["public"]["Tables"]["demo_requests"]["Row"]>;
+        Relationships: [];
+      };
+      staff_invitations: {
+        Row: {
+          id: string;
+          school_id: string;
+          email: string;
+          full_name: string | null;
+          role: "admin" | "headmaster" | "teacher";
+          token: string;
+          status: "pending" | "accepted" | "expired" | "revoked";
+          invited_by: string | null;
+          expires_at: string | null;
+          accepted_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Partial<Database["public"]["Tables"]["staff_invitations"]["Row"]> &
+          Pick<Database["public"]["Tables"]["staff_invitations"]["Row"], "school_id" | "email" | "role" | "token">;
+        Update: Partial<Database["public"]["Tables"]["staff_invitations"]["Row"]>;
+        Relationships: [];
+      };
+      school_staff: {
+        Row: {
+          id: string;
+          school_id: string;
+          full_name: string;
+          email: string | null;
+          phone: string | null;
+          role: "admin" | "headmaster" | "teacher";
+          is_active: boolean;
+          signature_url: string | null;
+          metadata: Json;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Partial<Database["public"]["Tables"]["school_staff"]["Row"]> &
+          Pick<Database["public"]["Tables"]["school_staff"]["Row"], "school_id" | "full_name">;
+        Update: Partial<Database["public"]["Tables"]["school_staff"]["Row"]>;
+        Relationships: [];
+      };
+      student_term_reports: {
+        Row: {
+          id: string;
+          school_id: string;
+          student_id: string;
+          class_id: string;
+          academic_year: string;
+          term: SchoolTerm;
+          upload_id: string | null;
+          class_teacher_comment: string | null;
+          principal_comment: string | null;
+          class_teacher_id: string | null;
+          published_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Partial<Database["public"]["Tables"]["student_term_reports"]["Row"]> &
+          Pick<Database["public"]["Tables"]["student_term_reports"]["Row"], "school_id" | "student_id" | "class_id" | "academic_year" | "term">;
+        Update: Partial<Database["public"]["Tables"]["student_term_reports"]["Row"]>;
+        Relationships: [];
+      };
+      platform_admins: {
+        Row: {
+          id: string;
+          user_id: string;
+          role: "owner" | "support" | "finance";
+          is_active: boolean;
+          created_at: string;
+        };
+        Insert: Partial<Database["public"]["Tables"]["platform_admins"]["Row"]> &
+          Pick<Database["public"]["Tables"]["platform_admins"]["Row"], "user_id" | "role">;
+        Update: Partial<Database["public"]["Tables"]["platform_admins"]["Row"]>;
+        Relationships: [];
+      };
+      platform_audit_logs: {
+        Row: {
+          id: string;
+          platform_admin_id: string | null;
+          actor_user_id: string | null;
+          action: string;
+          entity_type: string | null;
+          entity_id: string | null;
+          details: Json;
+          created_at: string;
+        };
+        Insert: Partial<Database["public"]["Tables"]["platform_audit_logs"]["Row"]> &
+          Pick<Database["public"]["Tables"]["platform_audit_logs"]["Row"], "action">;
+        Update: Partial<Database["public"]["Tables"]["platform_audit_logs"]["Row"]>;
         Relationships: [];
       };
       classes: {
@@ -143,6 +255,30 @@ export type Database = {
         Insert: Partial<Database["public"]["Tables"]["students"]["Row"]> &
           Pick<Database["public"]["Tables"]["students"]["Row"], "school_id" | "first_name" | "last_name">;
         Update: Partial<Database["public"]["Tables"]["students"]["Row"]>;
+        Relationships: [];
+      };
+      student_class_enrollments: {
+        Row: {
+          id: string;
+          school_id: string;
+          student_id: string;
+          class_id: string;
+          academic_year: string;
+          status: StudentEnrollmentStatus;
+          promoted_from_class_id: string | null;
+          promoted_to_class_id: string | null;
+          promoted_at: string | null;
+          promoted_by: string | null;
+          metadata: Json;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Partial<Database["public"]["Tables"]["student_class_enrollments"]["Row"]> &
+          Pick<
+            Database["public"]["Tables"]["student_class_enrollments"]["Row"],
+            "school_id" | "student_id" | "class_id" | "academic_year"
+          >;
+        Update: Partial<Database["public"]["Tables"]["student_class_enrollments"]["Row"]>;
         Relationships: [];
       };
       result_uploads: {
@@ -297,12 +433,29 @@ export type Database = {
         Args: { target_upload_id: string };
         Returns: Json;
       };
+      recalculate_result_positions: {
+        Args: {
+          target_school_id: string;
+          target_class_id: string;
+          target_term: SchoolTerm;
+          target_academic_year: string;
+        };
+        Returns: undefined;
+      };
       get_public_student_result: {
         Args: {
           input_code: string;
           requested_term?: SchoolTerm | null;
           requested_academic_year?: string | null;
         };
+        Returns: Json;
+      };
+      get_staff_invitation: {
+        Args: { invite_token: string };
+        Returns: Json;
+      };
+      accept_staff_invitation: {
+        Args: { invite_token: string };
         Returns: Json;
       };
     };

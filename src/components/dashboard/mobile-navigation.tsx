@@ -87,7 +87,7 @@ export function MobileNavigation({ open, onOpenChange, role, school, profile }: 
               </Button>
             </div>
 
-            <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4">
+            <nav className="dashboard-sidebar-scroll flex-1 space-y-1 overflow-y-auto px-3 py-4">
               {items.map((item) => {
                 const isActive =
                   item.href === "/dashboard"

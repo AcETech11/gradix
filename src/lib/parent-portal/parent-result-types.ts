@@ -47,6 +47,7 @@ export type PublicResultPayload = {
     classTeacherName?: string | null;
     classTeacherSignatureUrl?: string | null;
     classTeacherComment?: string | null;
+    overallPosition?: number | null;
     publishedAt: string | null;
     rows: ParentResultRow[];
   };

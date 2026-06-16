@@ -11,6 +11,7 @@ export async function getAnalyticsOverviewAction(input?: unknown): Promise<Analy
   return {
     totalStudents: data.students.filter((student) => student.is_active && student.status === "active").length,
     activeClasses: data.classes.length,
+    totalSubjects: data.subjects.length,
     publishedResults: data.publishedResults.length,
     pendingUploads: data.uploads.filter((upload) => upload.status === "draft" || upload.status === "validating" || upload.status === "validated").length,
     parentResultChecks: data.parentAccess.reduce((sum, access) => sum + access.use_count, 0),

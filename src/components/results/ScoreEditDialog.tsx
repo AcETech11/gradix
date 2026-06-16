@@ -41,6 +41,7 @@ export function ScoreEditDialog({ disabled, result, onMessage }: ScoreEditDialog
       continuousAssessment: result.continuousAssessment,
       examScore: result.examScore,
       remark: result.remark ?? "",
+      reasonForEdit: "",
     },
   });
   const ca = Number(useWatch({ control, name: "continuousAssessment" }) ?? 0);
@@ -84,7 +85,7 @@ export function ScoreEditDialog({ disabled, result, onMessage }: ScoreEditDialog
 
         {result.isPublished ? (
           <div className="mt-4 rounded-xl border border-amber-300/20 bg-amber-500/10 p-3 text-sm text-amber-100">
-            This result has already been published. Saving will flag it as edited after publish.
+            You are editing a published result. This change will be logged and parents will see the updated report.
           </div>
         ) : null}
 
@@ -107,6 +108,17 @@ export function ScoreEditDialog({ disabled, result, onMessage }: ScoreEditDialog
           <textarea className="min-h-24 w-full rounded-md border border-white/10 bg-slate-900 px-3 py-2 text-sm text-slate-50 outline-none focus:border-orange-300" {...register("remark")} />
           {errors.remark ? <p className="text-sm text-red-300">{errors.remark.message}</p> : null}
         </div>
+        {result.isPublished ? (
+          <div className="mt-4 space-y-2">
+            <label className="text-sm font-medium text-slate-200">Reason for edit</label>
+            <textarea
+              className="min-h-20 w-full rounded-md border border-white/10 bg-slate-900 px-3 py-2 text-sm text-slate-50 outline-none focus:border-orange-300"
+              placeholder="Corrected wrong exam score entered by teacher."
+              {...register("reasonForEdit")}
+            />
+            {errors.reasonForEdit ? <p className="text-sm text-red-300">{errors.reasonForEdit.message}</p> : null}
+          </div>
+        ) : null}
         <div className="mt-5 flex justify-end gap-2">
           <Button disabled={isPending} onClick={() => setOpen(false)} type="button" variant="outline">
             Cancel

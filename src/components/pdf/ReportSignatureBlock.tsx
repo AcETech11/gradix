@@ -1,24 +1,18 @@
-import Image from "next/image";
-
 import type { PrintableReportData } from "@/lib/pdf/report-types";
+
+/* eslint-disable @next/next/no-img-element */
 
 export function ReportSignatureBlock({ report }: { report: PrintableReportData }) {
   return (
     <section className="report-signatures">
-      <div className="report-comment-grid">
-        <div className="report-comment">
-          <span>Class Teacher Comment</span>
-          <p>{report.classTeacherComment}</p>
-        </div>
-        <div className="report-comment">
-          <span>Principal Comment</span>
-          <p>{report.reportSettings.principalComment}</p>
-        </div>
+      <div className="report-comment">
+        <span>Class Teacher Comment</span>
+        <p>{report.classTeacherComment || "\u00a0"}</p>
       </div>
       <div className="report-signature-grid">
         <div className="report-signature-box">
           {report.classTeacherSignatureUrl ? (
-            <Image alt="Class teacher signature" className="report-signature-image" height={52} src={report.classTeacherSignatureUrl} unoptimized width={140} />
+            <img alt="Class teacher signature" className="report-signature-image" crossOrigin="anonymous" src={report.classTeacherSignatureUrl} />
           ) : (
             <div className="report-signature-placeholder" />
           )}
@@ -27,12 +21,12 @@ export function ReportSignatureBlock({ report }: { report: PrintableReportData }
         </div>
         <div className="report-signature-box">
           {report.principalSignatureUrl ? (
-            <Image alt="Principal signature" className="report-signature-image" height={52} src={report.principalSignatureUrl} unoptimized width={140} />
+            <img alt="Principal signature" className="report-signature-image" crossOrigin="anonymous" src={report.principalSignatureUrl} />
           ) : (
             <div className="report-signature-placeholder" />
           )}
-          <strong>{report.principalName}</strong>
-          <span>Principal Signature</span>
+          <strong>{report.principalName || "Principal / Head Teacher"}</strong>
+          <span>Principal / Head Teacher</span>
         </div>
         <div className="report-signature-box">
           <strong>{new Date(report.printedAt).toLocaleDateString()}</strong>
@@ -40,7 +34,7 @@ export function ReportSignatureBlock({ report }: { report: PrintableReportData }
         </div>
         <div className="report-stamp-box">
           {report.school.sealUrl ? (
-            <Image alt="School seal" className="report-stamp-image" height={70} src={report.school.sealUrl} unoptimized width={70} />
+            <img alt="School seal" className="report-stamp-image" crossOrigin="anonymous" src={report.school.sealUrl} />
           ) : (
             <>
               <strong>School Stamp / Seal</strong>

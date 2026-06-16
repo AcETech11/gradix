@@ -148,6 +148,8 @@ export async function assertResourceBelongsToSchool(
         return supabase.from("class_subjects").select("id").eq("id", resourceId).eq("school_id", schoolId).maybeSingle();
       case "students":
         return supabase.from("students").select("id").eq("id", resourceId).eq("school_id", schoolId).maybeSingle();
+      case "student_class_enrollments":
+        return supabase.from("student_class_enrollments").select("id").eq("id", resourceId).eq("school_id", schoolId).maybeSingle();
       case "result_uploads":
         return supabase.from("result_uploads").select("id").eq("id", resourceId).eq("school_id", schoolId).maybeSingle();
       case "results":

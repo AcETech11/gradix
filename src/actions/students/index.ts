@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import type { ZodError } from "zod";
 
 import { requireCanManageStudents } from "@/lib/auth/authorization";
+import { assertStudentLimitAvailable } from "@/lib/billing/guards";
 import { createClient } from "@/lib/supabase/server";
 import { getAuthErrorMessage } from "@/lib/auth/errors";
 import { studentFormSchema, studentImportRowsSchema, type StudentFormInput, type StudentImportRowsInput } from "@/lib/students/schema";
@@ -48,6 +49,19 @@ function normalizeGeneralError(error: unknown) {
   return "Something went wrong while saving the student.";
 }
 
+function splitStudentName(name: string) {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  const firstName = parts.shift() ?? "";
+  const lastName = parts.length ? parts.pop() ?? "" : firstName;
+  const middleName = parts.length ? parts.join(" ") : null;
+
+  return {
+    firstName,
+    middleName,
+    lastName,
+  };
+}
+
 async function ensureStudentAccess() {
   return requireCanManageStudents();
 }
@@ -78,9 +92,10 @@ export async function createStudentAction(input: StudentFormInput): Promise<Auth
   try {
     const profile = await ensureStudentAccess();
     const supabase = await createClient();
+    await assertStudentLimitAvailable(profile.school_id, 1);
     const { data: classRecord, error: classError } = await supabase
       .from("classes")
-      .select("id")
+      .select("id, academic_year")
       .eq("id", parsed.data.classId)
       .eq("school_id", profile.school_id)
       .maybeSingle();
@@ -117,6 +132,15 @@ export async function createStudentAction(input: StudentFormInput): Promise<Auth
         student_code: data.permanent_code,
         class_id: parsed.data.classId,
       },
+    });
+
+    await supabase.from("student_class_enrollments").insert({
+      school_id: profile.school_id,
+      student_id: data.id,
+      class_id: parsed.data.classId,
+      academic_year: classRecord.academic_year,
+      status: "active",
+      promoted_by: profile.id,
     });
 
     revalidatePath("/dashboard/students");
@@ -277,9 +301,10 @@ export async function importStudentsAction(
   try {
     const profile = await ensureStudentAccess();
     const supabase = await createClient();
+    await assertStudentLimitAvailable(profile.school_id, parsed.data.length);
 
     const [classesResult, existingStudentsResult] = await Promise.all([
-      supabase.from("classes").select("id, name").eq("school_id", profile.school_id),
+      supabase.from("classes").select("id, name, academic_year").eq("school_id", profile.school_id),
       supabase
         .from("students")
         .select("id, admission_number, permanent_code")
@@ -294,25 +319,19 @@ export async function importStudentsAction(
       throw existingStudentsResult.error;
     }
 
-    const classMap = new Map((classesResult.data ?? []).map((classRecord) => [classRecord.name.trim().toLowerCase(), classRecord.id]));
+    const classMap = new Map((classesResult.data ?? []).map((classRecord) => [classRecord.name.trim().toLowerCase(), classRecord]));
     const existingAdmissionNumbers = new Set(
       (existingStudentsResult.data ?? [])
         .map((student) => student.admission_number?.trim().toLowerCase())
         .filter((value): value is string => Boolean(value)),
     );
-    const existingStudentCodes = new Set(
-      (existingStudentsResult.data ?? [])
-        .map((student) => student.permanent_code?.trim().toLowerCase())
-        .filter((value): value is string => Boolean(value)),
-    );
-
     const uniqueAdmissions = new Set<string>();
-    const uniqueStudentCodes = new Set<string>();
     const normalizedRows = parsed.data.map((row, index) => {
       const issues: string[] = [];
       const admissionNumber = row.admissionNumber.trim();
       const className = row.className.trim().toLowerCase();
-      const classId = classMap.get(className) ?? null;
+      const classRecord = classMap.get(className) ?? null;
+      const classId = classRecord?.id ?? null;
 
       if (!classId) {
         issues.push(`Row ${index + 1}: class "${row.className}" was not found.`);
@@ -324,18 +343,10 @@ export async function importStudentsAction(
 
       uniqueAdmissions.add(admissionNumber.toLowerCase());
 
-      if (row.studentCode) {
-        const codeKey = row.studentCode.trim().toLowerCase();
-        if (existingStudentCodes.has(codeKey) || uniqueStudentCodes.has(codeKey)) {
-          issues.push(`Row ${index + 1}: duplicate student code "${row.studentCode}".`);
-        }
-
-        uniqueStudentCodes.add(codeKey);
-      }
-
       return {
         ...row,
         classId,
+        academicYear: classRecord?.academic_year ?? null,
         issues,
       };
     });
@@ -353,16 +364,21 @@ export async function importStudentsAction(
     const rowsToInsert: TableInsert<"students">[] = [];
 
     for (const row of validRows) {
+      const name = splitStudentName(row.studentName);
+
       rowsToInsert.push({
         school_id: profile.school_id,
         class_id: row.classId as string,
-        permanent_code: row.studentCode.trim() || (await generateStudentCode(supabase, profile.school_id)),
-        first_name: row.firstName.trim(),
-        middle_name: null,
-        last_name: row.lastName.trim(),
-        gender: row.gender,
-        parent_full_name: row.parentName.trim(),
-        parent_phone: row.parentPhone.trim(),
+        permanent_code: await generateStudentCode(supabase, profile.school_id),
+        first_name: name.firstName,
+        middle_name: name.middleName,
+        last_name: name.lastName,
+        gender: row.gender || null,
+        date_of_birth: row.dateOfBirth || null,
+        parent_full_name: row.parentName?.trim() || null,
+        parent_phone: row.parentPhone?.trim() || null,
+        parent_email: row.parentEmail?.trim() || null,
+        address: row.address?.trim() || null,
         admission_number: row.admissionNumber.trim(),
         status: "active",
         is_active: true,
@@ -373,12 +389,29 @@ export async function importStudentsAction(
       });
     }
 
-    const { error } = await supabase
+    const { data: insertedStudents, error } = await supabase
       .from("students")
-      .insert(rowsToInsert);
+      .insert(rowsToInsert)
+      .select("id, class_id");
 
     if (error) {
       throw error;
+    }
+
+    const academicYearByClass = new Map((classesResult.data ?? []).map((classRecord) => [classRecord.id, classRecord.academic_year]));
+    if (insertedStudents?.length) {
+      await supabase.from("student_class_enrollments").insert(
+        insertedStudents
+          .filter((student) => student.class_id && academicYearByClass.has(student.class_id))
+          .map((student) => ({
+            school_id: profile.school_id,
+            student_id: student.id,
+            class_id: student.class_id as string,
+            academic_year: academicYearByClass.get(student.class_id as string) as string,
+            status: "active",
+            promoted_by: profile.id,
+          })),
+      );
     }
 
     await supabase.from("audit_logs").insert({

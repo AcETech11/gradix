@@ -1,5 +1,6 @@
 import { calculateReportSummary } from "@/lib/pdf/calculate-report-summary";
 import type { PrintableReportData } from "@/lib/pdf/report-types";
+import { formatPosition } from "@/lib/results/calculate-positions";
 
 export function ReportSummary({ report }: { report: PrintableReportData }) {
   const summary = calculateReportSummary(report.result.rows);
@@ -8,6 +9,7 @@ export function ReportSummary({ report }: { report: PrintableReportData }) {
     ["Total Score", summary.totalScore.toFixed(1)],
     ["Average Score", summary.averageScore.toFixed(1)],
     ["Overall Grade", summary.overallGrade],
+    ["Overall Position", formatPosition(report.result.overallPosition)],
     ["Highest Subject", summary.highestSubject ? `${summary.highestSubject.subject} (${summary.highestSubject.total})` : "N/A"],
     ["Lowest Subject", summary.lowestSubject ? `${summary.lowestSubject.subject} (${summary.lowestSubject.total})` : "N/A"],
     ["Performance Remark", summary.performanceRemark],

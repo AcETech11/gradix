@@ -2,7 +2,7 @@
 
 import { useMemo, useState, type ChangeEvent } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { FileSpreadsheet, Import, X } from "lucide-react";
+import { Download, FileSpreadsheet, Import, X } from "lucide-react";
 import * as XLSX from "xlsx";
 
 import { importStudentsAction } from "@/actions/students";
@@ -23,7 +23,6 @@ type ClassOption = {
 type StudentImportPanelProps = {
   classes: ClassOption[];
   existingAdmissionNumbers: string[];
-  existingStudentCodes: string[];
   canManage: boolean;
 };
 
@@ -32,6 +31,8 @@ type ParsedImportState = {
   previewRows: StudentImportPreviewRow[];
   fileName: string;
 };
+
+type ImportGender = "" | "male" | "female" | "other";
 
 function normalizeHeader(value: string) {
   return value.replace(/[^a-z0-9]/gi, "").toLowerCase();
@@ -51,18 +52,56 @@ function pickCell(row: Record<string, unknown>, keyNames: string[]) {
 
 function parseRows(sheetRows: Record<string, unknown>[]): StudentImportRow[] {
   return sheetRows.map((row) => ({
-    studentCode: pickCell(row, ["studentcode", "studentcode", "studentcode"]),
+    studentName: pickCell(row, ["studentname", "name"]),
     admissionNumber: pickCell(row, ["admissionnumber", "admissionno", "admission"]),
-    firstName: pickCell(row, ["firstname", "first"]),
-    lastName: pickCell(row, ["lastname", "last"]),
     gender: pickCell(row, ["gender"]).toLowerCase() as StudentImportRow["gender"],
+    dateOfBirth: pickCell(row, ["dateofbirth", "dob", "birthdate"]),
     className: pickCell(row, ["class"]),
-    parentName: pickCell(row, ["parentname", "parent"]),
-    parentPhone: pickCell(row, ["parentphone", "phone"]),
+    parentName: pickCell(row, ["parentguardianname", "parentname", "guardianname", "parent"]),
+    parentPhone: pickCell(row, ["parentphone", "guardianphone", "phone"]),
+    parentEmail: pickCell(row, ["parentemail", "guardianemail", "email"]),
+    address: pickCell(row, ["address", "homeaddress"]),
   }));
 }
 
-export function StudentImportPanel({ classes, existingAdmissionNumbers, existingStudentCodes, canManage }: StudentImportPanelProps) {
+function normalizeGender(value: StudentImportRow["gender"]): ImportGender {
+  return value === "male" || value === "female" || value === "other" ? value : "";
+}
+
+function downloadStudentTemplate() {
+  const rows = [
+    {
+      "Student Name": "Chidiadi Ugochukwu",
+      "Admission Number": "ADM001",
+      Class: "JSS 1A",
+      Gender: "male",
+      "Date of Birth": "2012-09-14",
+      "Parent/Guardian Name": "Mrs Ugochukwu",
+      "Parent Phone": "+2348000000000",
+      "Parent Email": "parent@example.com",
+      Address: "12 School Road",
+    },
+  ];
+  const instructions = [
+    ["Do not remove or rename column headers."],
+    ["Student Name, Admission Number, and Class are required."],
+    ["Class must already exist in Gradix or match an existing class name."],
+    ["Student Code will be generated automatically."],
+    ["Admission Number should be unique within the school."],
+    ["Save and upload the completed file as .xlsx."],
+  ];
+  const workbook = XLSX.utils.book_new();
+  const studentsSheet = XLSX.utils.json_to_sheet(rows, {
+    header: ["Student Name", "Admission Number", "Class", "Gender", "Date of Birth", "Parent/Guardian Name", "Parent Phone", "Parent Email", "Address"],
+  });
+  const instructionsSheet = XLSX.utils.aoa_to_sheet([["Student Import Instructions"], [], ...instructions]);
+  studentsSheet["!cols"] = [{ wch: 26 }, { wch: 18 }, { wch: 14 }, { wch: 12 }, { wch: 16 }, { wch: 24 }, { wch: 18 }, { wch: 24 }, { wch: 28 }];
+  XLSX.utils.book_append_sheet(workbook, studentsSheet, "Students");
+  XLSX.utils.book_append_sheet(workbook, instructionsSheet, "Instructions");
+  XLSX.writeFile(workbook, "gradix-student-import-template.xlsx");
+}
+
+export function StudentImportPanel({ classes, existingAdmissionNumbers, canManage }: StudentImportPanelProps) {
   const [open, setOpen] = useState(false);
   const [fileError, setFileError] = useState<string | null>(null);
   const [parsed, setParsed] = useState<ParsedImportState | null>(null);
@@ -89,9 +128,7 @@ export function StudentImportPanel({ classes, existingAdmissionNumbers, existing
     const normalizedRows = parseRows(sheetRows);
 
     const seenAdmissions = new Set<string>();
-    const seenCodes = new Set<string>();
     const existingAdmissions = new Set(existingAdmissionNumbers.map((value) => value.trim().toLowerCase()));
-    const existingCodes = new Set(existingStudentCodes.map((value) => value.trim().toLowerCase()));
 
     const previewRows: StudentImportPreviewRow[] = normalizedRows.map((row, index) => {
       const issues: string[] = [];
@@ -113,14 +150,6 @@ export function StudentImportPanel({ classes, existingAdmissionNumbers, existing
         issues.push(`Row ${index + 1}: duplicate admission number "${row.admissionNumber}".`);
       }
       seenAdmissions.add(admissionKey);
-
-      if (row.studentCode) {
-        const codeKey = row.studentCode.trim().toLowerCase();
-        if (existingCodes.has(codeKey) || seenCodes.has(codeKey)) {
-          issues.push(`Row ${index + 1}: duplicate student code "${row.studentCode}".`);
-        }
-        seenCodes.add(codeKey);
-      }
 
       return {
         ...row,
@@ -188,14 +217,15 @@ export function StudentImportPanel({ classes, existingAdmissionNumbers, existing
     }
 
     const validRows = parsed.previewRows.filter((row) => row.issues.length === 0).map((row) => ({
-      studentCode: row.studentCode ?? "",
+      studentName: row.studentName,
       admissionNumber: row.admissionNumber,
-      firstName: row.firstName,
-      lastName: row.lastName,
-      gender: row.gender as StudentImportRow["gender"],
+      gender: normalizeGender(row.gender),
+      dateOfBirth: row.dateOfBirth ?? "",
       className: row.className,
-      parentName: row.parentName,
-      parentPhone: row.parentPhone,
+      parentName: row.parentName ?? "",
+      parentPhone: row.parentPhone ?? "",
+      parentEmail: row.parentEmail ?? "",
+      address: row.address ?? "",
     }));
 
     setResult(null);
@@ -215,10 +245,16 @@ export function StudentImportPanel({ classes, existingAdmissionNumbers, existing
 
   return (
     <>
-      <Button className="bg-orange-500 text-slate-950 hover:bg-orange-400" type="button" onClick={() => setOpen(true)}>
-        <Import className="size-4" />
-        Import Students
-      </Button>
+      <div className="flex flex-wrap gap-2">
+        <Button className="border-white/10 bg-white/5 text-slate-100 hover:bg-white/10" type="button" variant="outline" onClick={downloadStudentTemplate}>
+          <Download className="size-4" />
+          Download Student Template
+        </Button>
+        <Button className="bg-orange-500 text-slate-950 hover:bg-orange-400" type="button" onClick={() => setOpen(true)}>
+          <Import className="size-4" />
+          Import Students
+        </Button>
+      </div>
 
       <AnimatePresence>
         {open ? (
@@ -253,7 +289,7 @@ export function StudentImportPanel({ classes, existingAdmissionNumbers, existing
                   <div className="space-y-2">
                     <h2 className="text-base font-semibold text-slate-50">Spreadsheet upload</h2>
                     <p className="text-sm text-slate-400">
-                      Expected columns: Admission Number, First Name, Last Name, Gender, Class, Parent Name, Parent Phone.
+                      Expected columns: Student Name, Admission Number, Class, Gender, Date of Birth, Parent/Guardian Name, Parent Phone, Parent Email, Address.
                     </p>
                   </div>
 
@@ -337,7 +373,7 @@ export function StudentImportPanel({ classes, existingAdmissionNumbers, existing
                               <td className="px-4 py-3 text-slate-400">{row.rowNumber}</td>
                               <td className="px-4 py-3 text-slate-100">{row.admissionNumber}</td>
                               <td className="px-4 py-3 text-slate-100">
-                                {row.firstName} {row.lastName}
+                                {row.studentName}
                               </td>
                               <td className="px-4 py-3 text-slate-100">{row.className}</td>
                               <td className="px-4 py-3">

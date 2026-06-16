@@ -38,7 +38,7 @@ export async function getUploadResultsAction(uploadId: string): Promise<{ upload
   const studentIds = Array.from(new Set((results ?? []).map((result) => result.student_id)));
   const subjectIds = Array.from(new Set((results ?? []).map((result) => result.subject_id)));
   const userIds = Array.from(new Set([upload.uploaded_by].filter((id): id is string => Boolean(id))));
-  const [studentsResult, subjectsResult, usersResult] = await Promise.all([
+  const [studentsResult, subjectsResult, usersResult, reportRowsResult] = await Promise.all([
     studentIds.length > 0
       ? supabase.from("students").select("id, permanent_code, admission_number, first_name, middle_name, last_name").eq("school_id", profile.school_id).in("id", studentIds)
       : Promise.resolve({ data: [], error: null }),
@@ -48,10 +48,20 @@ export async function getUploadResultsAction(uploadId: string): Promise<{ upload
     userIds.length > 0
       ? supabase.from("users").select("id, full_name").eq("school_id", profile.school_id).in("id", userIds)
       : Promise.resolve({ data: [], error: null }),
+    studentIds.length > 0
+      ? supabase
+          .from("student_term_reports")
+          .select("student_id, class_teacher_comment")
+          .eq("school_id", profile.school_id)
+          .eq("class_id", upload.class_id)
+          .eq("term", upload.term)
+          .eq("academic_year", upload.academic_year)
+          .in("student_id", studentIds)
+      : Promise.resolve({ data: [], error: null }),
   ]);
 
-  if (studentsResult.error || subjectsResult.error || usersResult.error) {
-    throw new Error(studentsResult.error?.message ?? subjectsResult.error?.message ?? usersResult.error?.message ?? "Result rows could not be loaded.");
+  if (studentsResult.error || subjectsResult.error || usersResult.error || reportRowsResult.error) {
+    throw new Error(studentsResult.error?.message ?? subjectsResult.error?.message ?? usersResult.error?.message ?? reportRowsResult.error?.message ?? "Result rows could not be loaded.");
   }
 
   const studentsById = new Map(
@@ -66,6 +76,7 @@ export async function getUploadResultsAction(uploadId: string): Promise<{ upload
   );
   const subjectsById = new Map((subjectsResult.data ?? []).map((subject) => [subject.id, subject.name]));
   const usersById = new Map((usersResult.data ?? []).map((user) => [user.id, user.full_name]));
+  const commentsByStudentId = new Map((reportRowsResult.data ?? []).map((row) => [row.student_id, row.class_teacher_comment]));
   const canEdit = canEditResultScores(profile);
   const canPublish = canPublishResultUpload(profile);
   const publishedDate = upload.published_at;
@@ -111,7 +122,7 @@ export async function getUploadResultsAction(uploadId: string): Promise<{ upload
         editedAt: result.edited_at,
         editCount: result.edit_count,
         editedAfterPublish: Boolean(result.edited_at && publishedDate && new Date(result.edited_at) > new Date(publishedDate)),
-        classTeacherComment: getMetadataString(getMetadataObject(result.metadata), "class_teacher_comment") || null,
+        classTeacherComment: commentsByStudentId.get(result.student_id) || getMetadataString(getMetadataObject(result.metadata), "class_teacher_comment") || null,
       };
     }),
   };

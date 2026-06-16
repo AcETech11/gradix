@@ -38,8 +38,8 @@ export function BrandingSettings({ schoolId, values, canEdit }: { schoolId: stri
         <p className="mt-1 text-sm leading-6 text-slate-400">Upload official school assets and set report accent colors.</p>
       </div>
       <div className="grid gap-4 lg:grid-cols-3">
-        <ImageUploadField bucket="school-logos" disabled={!canEdit} label="School logo" schoolId={schoolId} value={logoUrl} onChange={(url) => setValue("logoUrl", url, { shouldDirty: true })} />
-        <ImageUploadField bucket="school-logos" disabled={!canEdit} label="School crest / seal" schoolId={schoolId} value={sealUrl} onChange={(url) => setValue("sealUrl", url, { shouldDirty: true })} />
+        <ImageUploadField bucket="school-logos" disabled={!canEdit} fixedBaseName="logo" label="School logo" pathPrefix="logos" schoolId={schoolId} value={logoUrl} onChange={(url) => setValue("logoUrl", url, { shouldDirty: true })} />
+        <ImageUploadField bucket="school-logos" disabled={!canEdit} fixedBaseName="school-seal" label="School crest / seal" pathPrefix="seals" schoolId={schoolId} value={sealUrl} onChange={(url) => setValue("sealUrl", url, { shouldDirty: true })} />
         <ImageUploadField bucket="signatures" disabled={!canEdit} fixedBaseName="signature" label="Principal signature" pathPrefix="principal" schoolId={schoolId} value={principalSignatureUrl} onChange={(url) => setValue("principalSignatureUrl", url, { shouldDirty: true })} />
       </div>
       <div className="grid gap-4 md:grid-cols-2">

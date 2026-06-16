@@ -9,7 +9,7 @@ const phoneSchema = z
   .max(20, "Use a valid phone number.")
   .regex(/^[+0-9()\-\s]+$/, "Use digits and standard phone characters only.");
 
-const statusValues: StudentStatus[] = ["active", "inactive", "graduated", "archived"];
+const statusValues: StudentStatus[] = ["active", "inactive", "repeated", "graduated", "transferred", "withdrawn", "archived"];
 
 export const studentFormSchema = z.object({
   firstName: z.string().trim().min(2, "First name is required."),
@@ -39,14 +39,25 @@ export const studentFiltersSchema = z.object({
 });
 
 export const studentImportRowSchema = z.object({
-  studentCode: z.string().trim().optional().default(""),
+  studentName: z.string().trim().min(2, "Student name is required."),
   admissionNumber: z.string().trim().min(1, "Admission number is required."),
-  firstName: z.string().trim().min(1, "First name is required."),
-  lastName: z.string().trim().min(1, "Last name is required."),
-  gender: z.enum(["male", "female", "other"] satisfies [StudentGender, ...StudentGender[]]),
+  gender: z.union([z.enum(["male", "female", "other"] satisfies [StudentGender, ...StudentGender[]]), z.literal("")]).optional().default(""),
+  dateOfBirth: z
+    .string()
+    .trim()
+    .optional()
+    .default("")
+    .refine((value) => !value || !Number.isNaN(Date.parse(value)), "Enter a valid date of birth."),
   className: z.string().trim().min(1, "Class is required."),
-  parentName: z.string().trim().min(1, "Parent name is required."),
-  parentPhone: phoneSchema,
+  parentName: z.string().trim().optional().default(""),
+  parentPhone: z
+    .string()
+    .trim()
+    .optional()
+    .default("")
+    .refine((value) => !value || /^[+0-9()\-\s]+$/.test(value), "Use a valid parent phone."),
+  parentEmail: z.string().trim().email("Enter a valid parent email.").optional().or(z.literal("")).default(""),
+  address: z.string().trim().optional().default(""),
 });
 
 export const studentImportRowsSchema = z.array(studentImportRowSchema);

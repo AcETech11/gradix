@@ -2,7 +2,7 @@
 
 import type { ReactNode } from "react";
 import { useState } from "react";
-import { Palette, School, ScrollText, ShieldCheck, SlidersHorizontal, UsersRound } from "lucide-react";
+import { BookOpen, Palette, School, ScrollText, ShieldCheck, SlidersHorizontal, UsersRound } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
@@ -11,6 +11,7 @@ const tabs = [
   { id: "branding", label: "Branding", icon: Palette },
   { id: "report", label: "Report Settings", icon: ScrollText },
   { id: "grading", label: "Grading System", icon: SlidersHorizontal },
+  { id: "subjects", label: "Subjects", icon: BookOpen },
   { id: "users", label: "User Management", icon: UsersRound },
   { id: "security", label: "Security", icon: ShieldCheck },
 ] as const;

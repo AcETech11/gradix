@@ -37,6 +37,7 @@ export async function getTemplatePageData() {
             .select("class_id")
             .eq("school_id", profile.school_id)
             .eq("is_active", true)
+            .in("status", ["active", "repeated"])
             .in("class_id", classIds),
         ])
       : [

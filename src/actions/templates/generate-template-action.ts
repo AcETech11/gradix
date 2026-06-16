@@ -109,10 +109,11 @@ export async function generateResultTemplateAction(input: unknown): Promise<Temp
 
   const { data: students, error: studentsError } = await supabase
     .from("students")
-    .select("permanent_code, admission_number, first_name, middle_name, last_name")
+    .select("id, permanent_code, admission_number, first_name, middle_name, last_name, status, is_active")
     .eq("school_id", profile.school_id)
     .eq("class_id", parsed.data.classId)
     .eq("is_active", true)
+    .in("status", ["active", "repeated"])
     .order("last_name")
     .order("first_name");
 
@@ -123,7 +124,25 @@ export async function generateResultTemplateAction(input: unknown): Promise<Temp
     };
   }
 
-  if (!parsed.data.includeSampleRows && !students?.length) {
+  const { data: enrollments, error: enrollmentsError } = await supabase
+    .from("student_class_enrollments")
+    .select("student_id")
+    .eq("school_id", profile.school_id)
+    .eq("class_id", parsed.data.classId)
+    .eq("academic_year", parsed.data.academicYear)
+    .in("status", ["active", "repeated"]);
+
+  if (enrollmentsError) {
+    return {
+      ok: false,
+      message: "We could not load active enrollments for this class.",
+    };
+  }
+
+  const enrolledStudentIds = new Set((enrollments ?? []).map((enrollment) => enrollment.student_id));
+  const eligibleStudents = enrolledStudentIds.size > 0 ? (students ?? []).filter((student) => enrolledStudentIds.has(student.id)) : (students ?? []);
+
+  if (!parsed.data.includeSampleRows && !eligibleStudents.length) {
     return {
       ok: false,
       message: "No students found in this class. Add students first or download a blank sample template.",
@@ -141,7 +160,7 @@ export async function generateResultTemplateAction(input: unknown): Promise<Temp
       name: subject.name,
       code: subject.code,
     })),
-    students: (students ?? []).map((student) => ({
+    students: eligibleStudents.map((student) => ({
       permanentCode: student.permanent_code,
       admissionNumber: student.admission_number ?? "",
       name: [student.first_name, student.middle_name, student.last_name].filter(Boolean).join(" "),
@@ -162,7 +181,7 @@ export async function generateResultTemplateAction(input: unknown): Promise<Temp
       term: parsed.data.term,
       academic_year: parsed.data.academicYear,
       subject_count: subjects.length,
-      student_count: students?.length ?? 0,
+          student_count: eligibleStudents.length,
     },
   });
 

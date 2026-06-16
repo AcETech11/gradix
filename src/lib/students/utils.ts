@@ -37,8 +37,14 @@ export function getStudentStatusLabel(status: StudentStatus) {
       return "Active";
     case "inactive":
       return "Inactive";
+    case "repeated":
+      return "Repeated";
     case "graduated":
       return "Graduated";
+    case "transferred":
+      return "Transferred";
+    case "withdrawn":
+      return "Withdrawn";
     case "archived":
       return "Archived";
     default:
@@ -52,8 +58,14 @@ export function getStudentStatusTone(status: StudentStatus) {
       return "success";
     case "inactive":
       return "warning";
+    case "repeated":
+      return "info";
     case "graduated":
       return "info";
+    case "transferred":
+      return "warning";
+    case "withdrawn":
+      return "warning";
     case "archived":
       return "neutral";
     default:

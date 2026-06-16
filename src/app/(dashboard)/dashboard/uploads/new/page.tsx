@@ -14,7 +14,7 @@ export default async function NewUploadPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        description="Upload a completed Phase 7 Excel template, validate every row, preview normalized results, and save clean rows without publishing."
+        description="Upload a completed Gradix Excel template, validate every row, preview normalized results, and save clean rows without publishing."
         eyebrow="Uploads"
         title="Upload completed result template"
       />

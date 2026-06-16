@@ -33,6 +33,7 @@ export async function getUploadPageData() {
             .select("class_id")
             .eq("school_id", profile.school_id)
             .eq("is_active", true)
+            .in("status", ["active", "repeated"])
             .in("class_id", classIds),
         ])
       : [
@@ -159,7 +160,8 @@ export async function getValidationContext(classId: string, term: SchoolTerm, ac
       .select("id, permanent_code, admission_number, first_name, middle_name, last_name")
       .eq("school_id", profile.school_id)
       .eq("class_id", classId)
-      .eq("is_active", true),
+      .eq("is_active", true)
+      .in("status", ["active", "repeated"]),
   ]);
 
   if (subjectsError || studentsError) {
@@ -168,6 +170,25 @@ export async function getValidationContext(classId: string, term: SchoolTerm, ac
 
   if (!students?.length) {
     throw new Error("This class has no students. Add students before uploading results.");
+  }
+
+  const { data: enrollments, error: enrollmentsError } = await supabase
+    .from("student_class_enrollments")
+    .select("student_id")
+    .eq("school_id", profile.school_id)
+    .eq("class_id", classId)
+    .eq("academic_year", academicYear)
+    .in("status", ["active", "repeated"]);
+
+  if (enrollmentsError) {
+    throw new Error(enrollmentsError.message);
+  }
+
+  const enrolledStudentIds = new Set((enrollments ?? []).map((enrollment) => enrollment.student_id));
+  const eligibleStudents = enrolledStudentIds.size > 0 ? (students ?? []).filter((student) => enrolledStudentIds.has(student.id)) : (students ?? []);
+
+  if (!eligibleStudents.length) {
+    throw new Error("This class has no active students for the selected academic year.");
   }
 
   const { data: existingResults, error: existingError } = await supabase
@@ -187,7 +208,7 @@ export async function getValidationContext(classId: string, term: SchoolTerm, ac
     supabase,
     schoolClass,
     subjects: (subjects ?? []) satisfies UploadSubject[],
-    students: (students ?? []).map((student) => ({
+    students: eligibleStudents.map((student) => ({
       id: student.id,
       permanentCode: student.permanent_code,
       admissionNumber: student.admission_number,

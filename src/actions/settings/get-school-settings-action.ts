@@ -7,6 +7,7 @@ import {
   getReportSettings,
   type SchoolSettings,
 } from "@/lib/settings/settings-types";
+import { resolvePrincipalSignatureUrl, resolveSchoolLogoUrl, resolveSchoolSealUrl } from "@/lib/reports/report-assets";
 
 import { requireSettingsViewer } from "./settings-helpers";
 import { createClient } from "@/lib/supabase/server";
@@ -38,9 +39,9 @@ export async function getSchoolSettingsAction(): Promise<SchoolSettings> {
       principalName: getMetadataString(metadata, "principal_name", "Principal"),
     },
     branding: {
-      logoUrl: school.logo_url ?? "",
-      sealUrl: school.seal_url ?? "",
-      principalSignatureUrl: school.headmaster_signature_url ?? "",
+      logoUrl: resolveSchoolLogoUrl({ logo_url: school.logo_url, metadata }) ?? "",
+      sealUrl: resolveSchoolSealUrl({ seal_url: school.seal_url, metadata }) ?? "",
+      principalSignatureUrl: resolvePrincipalSignatureUrl({ headmaster_signature_url: school.headmaster_signature_url, metadata }) ?? "",
       primaryColor: getMetadataString(metadata, "primary_color", "#0f172a"),
       secondaryColor: getMetadataString(metadata, "secondary_color", "#f97316"),
     },

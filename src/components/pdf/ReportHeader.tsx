@@ -1,6 +1,6 @@
-import Image from "next/image";
-
 import type { PrintableReportData } from "@/lib/pdf/report-types";
+
+/* eslint-disable @next/next/no-img-element */
 
 export function ReportHeader({ report }: { report: PrintableReportData }) {
   return (
@@ -9,7 +9,7 @@ export function ReportHeader({ report }: { report: PrintableReportData }) {
         <div className="report-logo-frame">
           <div className="report-logo">
             {report.school.logoUrl ? (
-              <Image alt={`${report.school.name} logo`} height={84} src={report.school.logoUrl} unoptimized width={84} />
+              <img alt={`${report.school.name} logo`} crossOrigin="anonymous" src={report.school.logoUrl} />
             ) : (
               <span>School Crest</span>
             )}

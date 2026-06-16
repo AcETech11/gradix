@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation";
 import { archiveUploadAction } from "@/actions/results/archive-upload-action";
 import { Button } from "@/components/ui/button";
 import { PublishConfirmationDialog } from "@/components/results/PublishConfirmationDialog";
+import { ResultExportButtons } from "@/components/results/ResultExportButtons";
 import { ResultFilters } from "@/components/results/ResultFilters";
 import { ResultStatusBadge } from "@/components/results/ResultStatusBadge";
 import { UnpublishConfirmationDialog } from "@/components/results/UnpublishConfirmationDialog";
@@ -108,6 +109,7 @@ export function ResultUploadsTable({ uploads }: ResultUploadsTableProps) {
                         Review
                       </Link>
                     </Button>
+                    <ResultExportButtons uploadId={upload.id} />
                     {upload.canPublish ? <PublishConfirmationDialog disabled={isPending} onMessage={setMessage} uploadId={upload.id} /> : null}
                     {upload.canUnpublish ? <UnpublishConfirmationDialog disabled={isPending} onMessage={setMessage} uploadId={upload.id} /> : null}
                     {upload.canArchive ? (

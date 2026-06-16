@@ -3,6 +3,7 @@
 import type { ReactNode } from "react";
 import { useMemo, useState, useTransition } from "react";
 import { flexRender, getCoreRowModel, useReactTable, type ColumnDef } from "@tanstack/react-table";
+import { format } from "date-fns";
 import { RotateCcw, SlidersHorizontal } from "lucide-react";
 
 import { increaseParentAccessLimitAction, resetParentAccessViewsAction } from "@/actions/parent-access/update-parent-access-limit-action";
@@ -16,6 +17,10 @@ type ParentAccessTableProps = {
   records: ParentAccessRecord[];
   canManage: boolean;
 };
+
+function formatCheckedAt(value: string | null) {
+  return value ? format(new Date(value), "MMM d, yyyy h:mm a") : "Never";
+}
 
 export function ParentAccessTable({ canManage, records }: ParentAccessTableProps) {
   const [message, setMessage] = useState<string | null>(null);
@@ -45,7 +50,7 @@ export function ParentAccessTable({ canManage, records }: ParentAccessTableProps
       {
         accessorKey: "lastCheckedAt",
         header: "Last Checked",
-        cell: ({ row }) => (row.original.lastCheckedAt ? new Date(row.original.lastCheckedAt).toLocaleString() : "Never"),
+        cell: ({ row }) => formatCheckedAt(row.original.lastCheckedAt),
       },
       {
         accessorKey: "status",
@@ -170,7 +175,7 @@ export function ParentAccessTable({ canManage, records }: ParentAccessTableProps
               <p>{formatTerm(record.term)}, {record.academicYear}</p>
               <p>{formatViews(record.viewsUsed, record.maxViews)}</p>
               <p>{formatRemaining(record.viewsUsed, record.maxViews)}</p>
-              <p>Last checked: {record.lastCheckedAt ? new Date(record.lastCheckedAt).toLocaleString() : "Never"}</p>
+              <p>Last checked: {formatCheckedAt(record.lastCheckedAt)}</p>
             </div>
             {canManage ? (
               <div className="mt-4 flex flex-wrap gap-2">
@@ -193,7 +198,7 @@ export function ParentAccessTable({ canManage, records }: ParentAccessTableProps
           <p className="text-sm leading-6 text-slate-300">
             This will reset the view count for {selectedReset.studentName}&apos;s result for {formatTerm(selectedReset.term)}, {selectedReset.academicYear}. The parent will continue using the same permanent student code.
           </p>
-          <div className="mt-5 flex justify-end gap-2">
+          <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
             <Button className="border-white/10 bg-white/5 text-slate-100" disabled={pending} type="button" variant="outline" onClick={() => setSelectedReset(null)}>Cancel</Button>
             <Button className="bg-orange-500 text-slate-950 hover:bg-orange-400" disabled={pending} type="button" onClick={resetViews}>{pending ? "Resetting..." : "Reset Views"}</Button>
           </div>
@@ -211,7 +216,7 @@ export function ParentAccessTable({ canManage, records }: ParentAccessTableProps
             </label>
             <p className="text-xs leading-5 text-slate-400">New limit must be between 1 and 100, and cannot be below current views used.</p>
           </div>
-          <div className="mt-5 flex justify-end gap-2">
+          <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
             <Button className="border-white/10 bg-white/5 text-slate-100" disabled={pending} type="button" variant="outline" onClick={() => setSelectedLimit(null)}>Cancel</Button>
             <Button className="bg-orange-500 text-slate-950 hover:bg-orange-400" disabled={pending} type="button" onClick={increaseLimit}>{pending ? "Updating..." : "Update Limit"}</Button>
           </div>
@@ -223,8 +228,8 @@ export function ParentAccessTable({ canManage, records }: ParentAccessTableProps
 
 function Dialog({ children, onClose, title }: { children: ReactNode; onClose: () => void; title: string }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur">
-      <div className="w-full max-w-lg rounded-2xl border border-white/10 bg-slate-900 p-5 shadow-2xl">
+    <div className="fixed inset-0 z-50 flex items-end justify-center overflow-y-auto bg-slate-950/80 p-3 backdrop-blur sm:items-center sm:p-4">
+      <div className="max-h-[calc(100dvh-1.5rem)] w-full max-w-lg overflow-y-auto rounded-2xl border border-white/10 bg-slate-900 p-5 shadow-2xl">
         <div className="flex items-start justify-between gap-4">
           <h3 className="text-lg font-semibold text-slate-50">{title}</h3>
           <button className="rounded-lg px-2 py-1 text-sm text-slate-400 hover:bg-white/10 hover:text-slate-100" type="button" onClick={onClose}>Close</button>

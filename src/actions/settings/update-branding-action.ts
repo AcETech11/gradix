@@ -16,8 +16,16 @@ export async function updateBrandingAction(input: unknown): Promise<SettingsActi
     const { supabase, school, metadata } = await getSchoolForUpdate(profile.school_id);
     const nextMetadata = {
       ...metadata,
+      logo_url: parsed.data.logoUrl || "",
+      school_logo_url: parsed.data.logoUrl || "",
+      seal_url: parsed.data.sealUrl || "",
+      school_seal_url: parsed.data.sealUrl || "",
+      stamp_url: parsed.data.sealUrl || "",
+      school_stamp_url: parsed.data.sealUrl || "",
       primary_color: parsed.data.primaryColor,
       secondary_color: parsed.data.secondaryColor,
+      principal_signature_url: parsed.data.principalSignatureUrl || "",
+      headmaster_signature_url: parsed.data.principalSignatureUrl || "",
     };
     const { error } = await supabase
       .from("schools")
@@ -39,6 +47,7 @@ export async function updateBrandingAction(input: unknown): Promise<SettingsActi
       actorRole: profile.role,
       action: "branding_updated",
       details: {
+        security_event: "school_branding_assets_updated",
         old_values: { logo_url: school.logo_url, seal_url: school.seal_url, signature_url: school.headmaster_signature_url },
         new_values: {
           logo_url: parsed.data.logoUrl,

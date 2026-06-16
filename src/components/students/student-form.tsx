@@ -338,7 +338,10 @@ export function StudentForm({ mode, schoolId, classes, studentId, initialValues 
               >
                 <option value="active">Active</option>
                 <option value="inactive">Inactive</option>
+                <option value="repeated">Repeated</option>
                 <option value="graduated">Graduated</option>
+                <option value="transferred">Transferred</option>
+                <option value="withdrawn">Withdrawn</option>
                 <option value="archived">Archived</option>
               </select>
               {getFieldError("status") ? <p className="text-sm text-red-300">{getFieldError("status")}</p> : null}

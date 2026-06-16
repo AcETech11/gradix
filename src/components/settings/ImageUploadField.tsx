@@ -29,11 +29,13 @@ function sanitizeFileName(name: string) {
 export function ImageUploadField({ bucket, fixedBaseName, pathPrefix, schoolId, label, value, onChange, disabled }: ImageUploadFieldProps) {
   const [preview, setPreview] = useState(value);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
   const [progress, setProgress] = useState(0);
   const [pending, startTransition] = useTransition();
 
   function upload(file: File) {
     setError(null);
+    setSuccess(false);
 
     if (!allowedTypes.includes(file.type)) {
       setError("Upload a PNG, JPG, JPEG, or WebP image.");
@@ -64,6 +66,7 @@ export function ImageUploadField({ bucket, fixedBaseName, pathPrefix, schoolId, 
       setPreview(data.publicUrl);
       onChange(data.publicUrl);
       setProgress(100);
+      setSuccess(true);
     });
   }
 
@@ -115,6 +118,7 @@ export function ImageUploadField({ bucket, fixedBaseName, pathPrefix, schoolId, 
         )}
       </div>
       {progress > 0 && progress < 100 ? <div className="h-2 overflow-hidden rounded-full bg-white/10"><div className="h-full bg-orange-500" style={{ width: `${progress}%` }} /></div> : null}
+      {success ? <p className="text-sm text-emerald-300">Uploaded successfully. Save settings to keep this asset.</p> : null}
       {error ? <p className="text-sm text-red-300">{error}</p> : null}
     </div>
   );
