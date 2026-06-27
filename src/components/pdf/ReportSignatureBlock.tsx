@@ -3,12 +3,20 @@ import type { PrintableReportData } from "@/lib/pdf/report-types";
 /* eslint-disable @next/next/no-img-element */
 
 export function ReportSignatureBlock({ report }: { report: PrintableReportData }) {
+  const principalComment = report.principalComment.trim();
+
   return (
     <section className="report-signatures">
       <div className="report-comment">
         <span>Class Teacher Comment</span>
         <p>{report.classTeacherComment || "\u00a0"}</p>
       </div>
+      {principalComment ? (
+        <div className="report-comment report-principal-comment">
+          <span>Principal / Head Teacher Comment</span>
+          <p>{principalComment}</p>
+        </div>
+      ) : null}
       <div className="report-signature-grid">
         <div className="report-signature-box">
           {report.classTeacherSignatureUrl ? (

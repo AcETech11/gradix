@@ -1,4 +1,5 @@
 export type ReportSettings = {
+  reportFormat: "standard" | "comprehensive_primary";
   reportTitle: string;
   showSchoolMotto: boolean;
   showStudentCode: boolean;
@@ -6,6 +7,11 @@ export type ReportSettings = {
   showClassPosition: boolean;
   showGradingGuide: boolean;
   showPerformanceSummary: boolean;
+  showAttendanceRecord: boolean;
+  showAffectiveDomain: boolean;
+  showPsychomotorDomain: boolean;
+  showRatingScale: boolean;
+  attendanceOpenDaysLabel: string;
   footerNote: string;
   principalComment: string;
   classTeacherComment: string;
@@ -13,6 +19,7 @@ export type ReportSettings = {
 };
 
 export const DEFAULT_REPORT_SETTINGS: ReportSettings = {
+  reportFormat: "standard",
   reportTitle: "OFFICIAL STUDENT RESULT REPORT",
   showSchoolMotto: true,
   showStudentCode: true,
@@ -20,6 +27,11 @@ export const DEFAULT_REPORT_SETTINGS: ReportSettings = {
   showClassPosition: false,
   showGradingGuide: true,
   showPerformanceSummary: true,
+  showAttendanceRecord: true,
+  showAffectiveDomain: true,
+  showPsychomotorDomain: true,
+  showRatingScale: true,
+  attendanceOpenDaysLabel: "No. of Days School Opened",
   footerNote: "This result was published by the school and verified through Gradix.",
   principalComment: "",
   classTeacherComment: "",

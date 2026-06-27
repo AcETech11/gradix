@@ -7,6 +7,7 @@ import { usePathname } from "next/navigation";
 import { ChevronLeft, ChevronRight, School } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { InstallGradixButton } from "@/components/pwa/install-gradix-button";
 import { cn } from "@/lib/utils";
 import type { AuthProfile, AuthRole, AuthSchool } from "@/types/auth";
 
@@ -53,7 +54,7 @@ export function Sidebar({ role, school, profile }: SidebarProps) {
   return (
     <aside
       className={cn(
-        "sticky top-0 hidden h-dvh shrink-0 border-r border-white/10 bg-[#08111f] text-slate-100 transition-all duration-300 lg:flex lg:flex-col",
+        "dashboard-print-hidden sticky top-0 hidden h-dvh shrink-0 border-r border-white/10 bg-[#08111f] text-slate-100 transition-all duration-300 lg:flex lg:flex-col",
         collapsed ? "w-[5.75rem]" : "w-[18.5rem]",
       )}
     >
@@ -111,7 +112,8 @@ export function Sidebar({ role, school, profile }: SidebarProps) {
         })}
       </nav>
 
-      <div className="border-t border-white/10 p-4">
+      <div className="space-y-3 border-t border-white/10 p-4">
+        <InstallGradixButton collapsed={collapsed} />
         <div
           className={cn(
             "rounded-2xl border border-white/10 bg-white/5 p-3",

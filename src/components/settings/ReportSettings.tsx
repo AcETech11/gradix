@@ -33,10 +33,32 @@ export function ReportSettings({ values, canEdit }: { values: ReportSettingsInpu
         <p className="mt-1 text-sm leading-6 text-slate-400">Control what appears on parent result pages and printable report cards.</p>
       </div>
       <div className="grid gap-4 md:grid-cols-2">
+        <Field label="Report format" error={errors.reportFormat?.message}>
+          <select
+            className="h-11 w-full rounded-md border border-white/10 bg-slate-950/60 px-3 text-sm text-slate-100 outline-none focus:ring-2 focus:ring-orange-400/40 disabled:opacity-60"
+            disabled={!canEdit}
+            {...register("reportFormat")}
+          >
+            <option value="standard">Standard Academic Report</option>
+            <option value="comprehensive_primary">Comprehensive Primary Report</option>
+          </select>
+        </Field>
         <Field label="Report title" error={errors.reportTitle?.message}><Input disabled={!canEdit} {...register("reportTitle")} /></Field>
         <Field label="Next term begins"><Input disabled={!canEdit} type="date" {...register("nextTermBegins")} /></Field>
+        <Field label="Attendance open-days label" error={errors.attendanceOpenDaysLabel?.message}><Input disabled={!canEdit} {...register("attendanceOpenDaysLabel")} /></Field>
         <Field className="md:col-span-2" label="Report footer note"><Input disabled={!canEdit} {...register("footerNote")} /></Field>
-        <Field label="Principal comment default"><Input disabled={!canEdit} {...register("principalComment")} /></Field>
+        <Field
+          className="md:col-span-2"
+          error={errors.principalComment?.message}
+          help="This comment will appear automatically on all student reports for this school. Leave it empty to hide the Principal Comment section."
+          label="Default Principal / Head Teacher Comment"
+        >
+          <textarea
+            className="min-h-24 w-full rounded-md border border-white/10 bg-slate-950/60 px-3 py-3 text-sm text-slate-100 outline-none focus:ring-2 focus:ring-orange-400/40 disabled:opacity-60"
+            disabled={!canEdit}
+            {...register("principalComment")}
+          />
+        </Field>
         <Field label="Class teacher comment default"><Input disabled={!canEdit} {...register("classTeacherComment")} /></Field>
       </div>
       <div className="grid gap-3 sm:grid-cols-2">
@@ -46,6 +68,10 @@ export function ReportSettings({ values, canEdit }: { values: ReportSettingsInpu
         <Check label="Show class position" disabled={!canEdit} {...register("showClassPosition")} />
         <Check label="Show grading guide" disabled={!canEdit} {...register("showGradingGuide")} />
         <Check label="Show performance summary" disabled={!canEdit} {...register("showPerformanceSummary")} />
+        <Check label="Show attendance record" disabled={!canEdit} {...register("showAttendanceRecord")} />
+        <Check label="Show affective domain" disabled={!canEdit} {...register("showAffectiveDomain")} />
+        <Check label="Show psychomotor domain" disabled={!canEdit} {...register("showPsychomotorDomain")} />
+        <Check label="Show rating scale" disabled={!canEdit} {...register("showRatingScale")} />
       </div>
       {message ? <p className={message.includes("updated") ? "text-sm text-emerald-300" : "text-sm text-red-300"}>{message}</p> : null}
       {canEdit ? <SettingsSaveButton loading={pending} /> : null}
@@ -53,8 +79,8 @@ export function ReportSettings({ values, canEdit }: { values: ReportSettingsInpu
   );
 }
 
-function Field({ label, error, className, children }: { label: string; error?: string; className?: string; children: ReactNode }) {
-  return <div className={className}><Label className="text-slate-200">{label}</Label><div className="mt-2 [&_input]:border-white/10 [&_input]:bg-slate-950/60 [&_input]:text-slate-100">{children}</div>{error ? <p className="mt-1 text-sm text-red-300">{error}</p> : null}</div>;
+function Field({ label, error, help, className, children }: { label: string; error?: string; help?: string; className?: string; children: ReactNode }) {
+  return <div className={className}><Label className="text-slate-200">{label}</Label><div className="mt-2 [&_input]:border-white/10 [&_input]:bg-slate-950/60 [&_input]:text-slate-100">{children}</div>{help ? <p className="mt-1 text-xs leading-5 text-slate-400">{help}</p> : null}{error ? <p className="mt-1 text-sm text-red-300">{error}</p> : null}</div>;
 }
 
 function Check({ label, ...props }: InputHTMLAttributes<HTMLInputElement> & { label: string }) {

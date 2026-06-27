@@ -1,4 +1,6 @@
 import { ReportFooter } from "@/components/pdf/ReportFooter";
+import { ReportAttendance } from "@/components/pdf/ReportAttendance";
+import { ReportDevelopmentDomains } from "@/components/pdf/ReportDevelopmentDomains";
 import { ReportGradingGuide } from "@/components/pdf/ReportGradingGuide";
 import { ReportHeader } from "@/components/pdf/ReportHeader";
 import { ReportResultTable } from "@/components/pdf/ReportResultTable";
@@ -15,9 +17,17 @@ export function PrintableReportCard({ result }: { result: PublicResultPayload })
     <article className="report-card print-report">
       <ReportHeader report={report} />
       <ReportStudentInfo report={report} />
-      <ReportResultTable rows={report.result.rows} />
-      {report.reportSettings.showPerformanceSummary ? <ReportSummary report={report} /> : null}
-      {report.reportSettings.showGradingGuide ? <ReportGradingGuide scale={report.gradingScale} /> : null}
+      <ReportAttendance report={report} />
+      <ReportResultTable
+        classStudentCount={report.result.classStudentCount}
+        overallPosition={report.result.overallPosition}
+        rows={report.result.rows}
+        showAverageLine
+        title="COGNITIVE DOMAIN"
+      />
+      <ReportSummary report={report} />
+      <ReportDevelopmentDomains forceShow report={report} />
+      <ReportGradingGuide scale={report.gradingScale} />
       <ReportSignatureBlock report={report} />
       <ReportFooter report={report} />
     </article>

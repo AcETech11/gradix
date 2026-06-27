@@ -1,6 +1,7 @@
 import type { SchoolTerm } from "@/types/database";
 import type { GradingBand } from "@/lib/settings/default-grading-scale";
 import type { ReportSettings } from "@/lib/settings/report-settings-defaults";
+import type { TraitRatingMap } from "@/lib/reports/primary-report";
 
 export type ParentResultRow = {
   subject: string;
@@ -48,6 +49,16 @@ export type PublicResultPayload = {
     classTeacherSignatureUrl?: string | null;
     classTeacherComment?: string | null;
     overallPosition?: number | null;
+    classStudentCount?: number | null;
+    attendance?: {
+      schoolOpenDays: number | null;
+      daysPresent: number | null;
+      daysAbsent: number | null;
+      termEndsOn: string | null;
+      nextTermBeginsOn: string | null;
+    } | null;
+    affectiveDomain?: TraitRatingMap | null;
+    psychomotorDomain?: TraitRatingMap | null;
     publishedAt: string | null;
     rows: ParentResultRow[];
   };

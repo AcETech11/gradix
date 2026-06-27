@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { AFFECTIVE_TRAITS, PSYCHOMOTOR_TRAITS } from "@/lib/reports/primary-report";
 import type { SchoolTerm, UploadStatus } from "@/types/database";
 
 export const resultScoreSchema = z.object({
@@ -16,8 +17,29 @@ export const classTeacherCommentSchema = z.object({
   comment: z.string().trim().max(240, "Comment is too long."),
 });
 
+export const reportDetailsSchema = z.object({
+  uploadId: z.string().uuid(),
+  studentId: z.string().uuid(),
+  attendancePresent: z.coerce.number().int().min(0).nullable().optional(),
+  attendanceAbsent: z.coerce.number().int().min(0).nullable().optional(),
+  classTeacherComment: z.string().trim().max(240, "Comment is too long.").optional(),
+  reasonForEdit: z.string().trim().optional(),
+  affectiveDomain: z.object(Object.fromEntries(AFFECTIVE_TRAITS.map((trait) => [trait, z.coerce.number().int().min(1).max(5).nullable().optional()]))),
+  psychomotorDomain: z.object(Object.fromEntries(PSYCHOMOTOR_TRAITS.map((trait) => [trait, z.coerce.number().int().min(1).max(5).nullable().optional()]))),
+});
+
+export const classTermReportSettingsSchema = z.object({
+  uploadId: z.string().uuid(),
+  schoolOpenDays: z.coerce.number().int().min(0).nullable().optional(),
+  termEndsOn: z.string().optional().or(z.literal("")),
+  nextTermBeginsOn: z.string().optional().or(z.literal("")),
+});
+
 export type ResultScoreInput = z.infer<typeof resultScoreSchema>;
 export type ResultScoreFormValues = z.input<typeof resultScoreSchema>;
+export type ReportDetailsInput = z.infer<typeof reportDetailsSchema>;
+export type ReportDetailsFormValues = z.input<typeof reportDetailsSchema>;
+export type ClassTermReportSettingsInput = z.infer<typeof classTermReportSettingsSchema>;
 
 export type ResultUploadListItem = {
   id: string;
@@ -57,6 +79,10 @@ export type ResultReviewRow = {
   editCount: number;
   editedAfterPublish: boolean;
   classTeacherComment: string | null;
+  attendancePresent: number | null;
+  attendanceAbsent: number | null;
+  affectiveDomain: Record<string, number | undefined>;
+  psychomotorDomain: Record<string, number | undefined>;
 };
 
 export type ResultUploadDetail = {
@@ -77,6 +103,10 @@ export type ResultUploadDetail = {
   canPublish: boolean;
   canUnpublish: boolean;
   canArchive: boolean;
+  canEditReportDetails: boolean;
+  schoolOpenDays: number | null;
+  termEndsOn: string | null;
+  nextTermBeginsOn: string | null;
 };
 
 export type ResultActionState<TData = unknown> =

@@ -33,8 +33,12 @@ export function DashboardLayout({ children, profile, school }: DashboardLayoutPr
 
           <main className="min-h-0 flex-1 overflow-y-auto">
             <div className="mx-auto flex w-full max-w-7xl flex-col gap-5 px-4 py-5 sm:px-6 lg:px-8 lg:py-6">
-              <Breadcrumbs />
-              <BillingBanner school={school} />
+              <div className="dashboard-print-hidden">
+                <Breadcrumbs />
+              </div>
+              <div className="dashboard-print-hidden">
+                <BillingBanner school={school} />
+              </div>
               {children}
             </div>
           </main>

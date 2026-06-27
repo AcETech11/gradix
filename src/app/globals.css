@@ -116,6 +116,51 @@ body {
   background: rgb(251 146 60 / 0.45);
 }
 
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 12mm;
+  }
+
+  html,
+  body {
+    background: #ffffff !important;
+    color: #0f172a !important;
+  }
+
+  .dashboard-print-hidden,
+  .dashboard-summary-actions {
+    display: none !important;
+  }
+
+  .dashboard-summary-page {
+    min-height: auto !important;
+    background: #ffffff !important;
+    padding: 0 !important;
+  }
+
+  .dashboard-summary-sheet {
+    max-width: none !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+  }
+
+  .dashboard-summary-sheet,
+  .dashboard-summary-sheet section,
+  .dashboard-summary-sheet header,
+  .dashboard-summary-sheet footer {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .dashboard-summary-sheet a {
+    color: #0f172a !important;
+    text-decoration: none !important;
+  }
+}
+
 ::selection {
   background: color-mix(in oklch, var(--foreground) 12%, transparent);
 }
@@ -272,6 +317,35 @@ body {
   overflow-wrap: anywhere;
 }
 
+.report-attendance-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  border-top: 1px solid #cbd5e1;
+  border-left: 1px solid #cbd5e1;
+}
+
+.report-attendance-item {
+  min-height: 42px;
+  border-right: 1px solid #cbd5e1;
+  border-bottom: 1px solid #cbd5e1;
+  padding: 7px;
+}
+
+.report-attendance-item span,
+.report-scale-grid span {
+  display: block;
+  color: #64748b;
+  font-size: 8.5px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.report-attendance-item strong {
+  display: block;
+  margin-top: 4px;
+  font-size: 11px;
+}
+
 .report-table {
   width: 100%;
   table-layout: fixed;
@@ -326,25 +400,78 @@ body {
   font-weight: 700;
 }
 
-.performance-excellent,
-.performance-good {
-  color: #166534;
-  background: #f0fdf4;
+.report-cognitive-summary {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  border-right: 1px solid #cbd5e1;
+  border-bottom: 1px solid #cbd5e1;
+  border-left: 1px solid #cbd5e1;
+  padding: 7px 8px;
+  font-size: 10.5px;
 }
 
-.performance-credit {
-  color: #075985;
-  background: #f0f9ff;
+.report-development-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  break-inside: avoid;
 }
 
-.performance-pass {
-  color: #92400e;
-  background: #fffbeb;
+.report-section-subtitle {
+  margin: -3px 0 6px;
+  color: #475569;
+  font-size: 9px;
+  font-weight: 700;
 }
 
+.report-domain-table th:last-child,
+.report-domain-table td:last-child {
+  width: 72px;
+  text-align: center;
+}
+
+.report-scale-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 5px;
+}
+
+.report-scale-grid div {
+  border: 1px solid #cbd5e1;
+  padding: 6px;
+}
+
+.report-scale-grid strong {
+  display: block;
+  font-size: 12px;
+}
+
+.score-ink-red,
 .performance-fail {
-  color: #991b1b;
-  background: #fef2f2;
+  color: #b91c1c;
+  background: transparent;
+}
+
+.score-ink-black,
+.performance-good,
+.performance-credit,
+.performance-pass {
+  color: #111827;
+  background: transparent;
+}
+
+.score-ink-green,
+.performance-excellent {
+  color: #15803d;
+  background: transparent;
+}
+
+.score-ink-red,
+.score-ink-black,
+.score-ink-green {
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
 }
 
 .report-table tr {
@@ -398,6 +525,17 @@ body {
   padding: 8px;
   font-size: 11px;
   line-height: 1.35;
+  white-space: pre-line;
+}
+
+.report-principal-comment {
+  margin-top: 8px;
+}
+
+.report-principal-comment p {
+  min-height: 0;
+  max-height: none;
+  overflow: visible;
 }
 
 .report-signature-grid {
@@ -609,6 +747,21 @@ body {
     line-height: 1.1;
   }
 
+  .report-attendance-item {
+    min-height: 28px;
+    padding: 4px;
+  }
+
+  .report-attendance-item span,
+  .report-scale-grid span {
+    font-size: 6.7px;
+  }
+
+  .report-attendance-item strong,
+  .report-cognitive-summary {
+    font-size: 8px;
+  }
+
   .report-table {
     font-size: 8.5px;
     line-height: 1.12;
@@ -638,6 +791,27 @@ body {
   .report-grade-grid em {
     font-size: 7.8px;
     line-height: 1.15;
+  }
+
+  .report-development-grid {
+    gap: 5px;
+  }
+
+  .report-section-subtitle {
+    margin-bottom: 3px;
+    font-size: 7px;
+  }
+
+  .report-scale-grid {
+    gap: 3px;
+  }
+
+  .report-scale-grid div {
+    padding: 3px;
+  }
+
+  .report-scale-grid strong {
+    font-size: 9px;
   }
 
   .report-signatures {

@@ -5,8 +5,24 @@ import { revalidatePath } from "next/cache";
 import { requireActiveBillingForSchool } from "@/lib/billing/guards";
 import { getValidationContext } from "@/lib/uploads/data";
 import { uploadValidationSchema, type SaveUploadState } from "@/lib/uploads/upload-types";
-import { getSavableRows, validateResultUpload } from "@/lib/uploads/validate-result-upload";
-import type { UploadStatus } from "@/types/database";
+import { getParsedClassTermDetails, getSavableRows, validateResultUpload } from "@/lib/uploads/validate-result-upload";
+import type { Json, UploadStatus } from "@/types/database";
+
+type CreatedUploadResult = {
+  new_upload_id?: string;
+  old_upload_id?: string | null;
+  new_upload_status?: UploadStatus;
+  old_upload_archived?: boolean;
+  active_upload_existed?: boolean;
+};
+
+function parseCreatedUploadResult(value: Json): CreatedUploadResult {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return {};
+  }
+
+  return value as CreatedUploadResult;
+}
 
 export async function saveUploadAction(input: unknown): Promise<SaveUploadState> {
   const parsed = uploadValidationSchema.safeParse(input);
@@ -41,11 +57,13 @@ export async function saveUploadAction(input: unknown): Promise<SaveUploadState>
     }
 
     const rows = getSavableRows(validation);
+    const termDetails = getParsedClassTermDetails(parsed.data.fileBase64);
     const rowsToInsert = rows.filter((row) => !row.isExistingDuplicate);
     const rowsToReplace = parsed.data.duplicateStrategy === "replace" ? rows.filter((row) => row.isExistingDuplicate) : [];
     const skippedRows = parsed.data.duplicateStrategy === "skip" ? rows.filter((row) => row.isExistingDuplicate).length : 0;
     const uploadStatus: UploadStatus = "validated";
     const subjectSummary = context.subjects.map((subject) => subject.name).join(", ");
+
     const uploadPayload = {
       school_id: context.profile.school_id,
       class_id: parsed.data.classId,
@@ -69,41 +87,45 @@ export async function saveUploadAction(input: unknown): Promise<SaveUploadState>
         duplicate_replaced: rowsToReplace.length,
       },
     };
-    const { data: upload, error: uploadError } = await context.supabase
-      .from("result_uploads")
-      .insert(uploadPayload)
-      .select("id")
-      .single();
+    const { data: createdUpload, error: uploadError } = await context.supabase.rpc("create_result_upload_for_save", {
+      target_class_id: parsed.data.classId,
+      target_term: parsed.data.term,
+      target_academic_year: parsed.data.academicYear,
+      replacement_mode: parsed.data.duplicateStrategy === "replace",
+      upload_payload: uploadPayload,
+    });
+    const upload = parseCreatedUploadResult(createdUpload);
 
-    if (uploadError || !upload) {
+    if (uploadError || !upload.new_upload_id) {
       return {
         ok: false,
         message: uploadError?.message ?? "The upload record could not be created.",
       };
     }
 
-    if (rowsToInsert.length > 0) {
-      const { error } = await context.supabase.from("results").insert(
-        rowsToInsert.map((row) => ({
-          school_id: context.profile.school_id,
-          upload_id: upload.id,
-          student_id: row.studentId as string,
-          class_id: parsed.data.classId,
-          subject_id: row.subjectId as string,
-          term: parsed.data.term,
-          academic_year: parsed.data.academicYear,
-          continuous_assessment: row.ca ?? 0,
-          exam_score: row.exam ?? 0,
-          grade: row.grade,
-          remark: row.remark || null,
-          metadata: row.classTeacherComment
-            ? {
-                class_teacher_comment: row.classTeacherComment,
-              }
-            : {},
-          is_published: false,
-        })),
-      );
+    const rowsToPersist = parsed.data.duplicateStrategy === "replace" ? rows : rowsToInsert;
+    const resultPayloads = rowsToPersist.map((row) => ({
+      school_id: context.profile.school_id,
+      upload_id: upload.new_upload_id as string,
+      student_id: row.studentId as string,
+      class_id: parsed.data.classId,
+      subject_id: row.subjectId as string,
+      term: parsed.data.term,
+      academic_year: parsed.data.academicYear,
+      continuous_assessment: row.ca ?? 0,
+      exam_score: row.exam ?? 0,
+      grade: row.grade,
+      remark: row.remark || null,
+      metadata: row.classTeacherComment
+        ? {
+            class_teacher_comment: row.classTeacherComment,
+          }
+        : {},
+      is_published: false,
+    }));
+
+    if (resultPayloads.length > 0) {
+      const { error } = await context.supabase.from("results").insert(resultPayloads);
 
       if (error) {
         return {
@@ -113,59 +135,52 @@ export async function saveUploadAction(input: unknown): Promise<SaveUploadState>
       }
     }
 
-    for (const row of rowsToReplace) {
-      const { error } = await context.supabase
-        .from("results")
-        .update({
-          upload_id: upload.id,
-          continuous_assessment: row.ca ?? 0,
-          exam_score: row.exam ?? 0,
-          grade: row.grade,
-          remark: row.remark || null,
-          metadata: row.classTeacherComment
-            ? {
-                class_teacher_comment: row.classTeacherComment,
-              }
-            : {},
-          is_published: false,
-        })
-        .eq("school_id", context.profile.school_id)
-        .eq("student_id", row.studentId as string)
-        .eq("subject_id", row.subjectId as string)
-        .eq("term", parsed.data.term)
-        .eq("academic_year", parsed.data.academicYear)
-        .eq("is_published", false);
-
-      if (error) {
-        return {
-          ok: false,
-          message: error.message,
-        };
-      }
-    }
-
-    const commentByStudent = new Map<string, string>();
+    const reportDetailsByStudent = new Map<string, (typeof rows)[number]>();
     rows.forEach((row) => {
-      if (row.studentId && row.classTeacherComment.trim() && !commentByStudent.has(row.studentId)) {
-        commentByStudent.set(row.studentId, row.classTeacherComment.trim());
+      if (row.studentId && !reportDetailsByStudent.has(row.studentId)) {
+        reportDetailsByStudent.set(row.studentId, row);
       }
     });
 
-    if (commentByStudent.size > 0) {
+    if (termDetails) {
+      const { error } = await context.supabase.from("class_term_report_settings").upsert(
+        {
+          school_id: context.profile.school_id,
+          class_id: parsed.data.classId,
+          academic_year: parsed.data.academicYear,
+          term: parsed.data.term,
+          school_open_days: termDetails.schoolOpenDays,
+          term_ends_on: termDetails.termEndsOn,
+          next_term_begins_on: termDetails.nextTermBeginsOn,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "school_id,class_id,academic_year,term" },
+      );
+
+      if (error) {
+        return { ok: false, message: error.message };
+      }
+    }
+
+    if (reportDetailsByStudent.size > 0) {
       const { error } = await context.supabase.from("student_term_reports").upsert(
-        Array.from(commentByStudent.entries()).map(([studentId, comment]) => ({
+        Array.from(reportDetailsByStudent.entries()).map(([studentId, row]) => ({
           school_id: context.profile.school_id,
           student_id: studentId,
           class_id: parsed.data.classId,
           academic_year: parsed.data.academicYear,
           term: parsed.data.term,
-          upload_id: upload.id,
-          class_teacher_comment: comment,
+          upload_id: upload.new_upload_id,
+          class_teacher_comment: row.classTeacherComment.trim() || null,
+          attendance_present: row.attendancePresent,
+          attendance_absent: row.attendanceAbsent,
+          affective_domain: row.affectiveDomain,
+          psychomotor_domain: row.psychomotorDomain,
           class_teacher_id: context.schoolClass.teacher_id || null,
           updated_at: new Date().toISOString(),
         })),
         {
-          onConflict: "school_id,student_id,class_id,academic_year,term",
+          onConflict: "school_id,student_id,class_id,academic_year,term,upload_id",
         },
       );
 
@@ -180,7 +195,7 @@ export async function saveUploadAction(input: unknown): Promise<SaveUploadState>
       actor_role: context.profile.role,
       action: "validate",
       table_name: "result_uploads",
-      record_id: upload.id,
+      record_id: upload.new_upload_id,
       details: {
         security_event: "result_upload_saved",
         class_id: parsed.data.classId,
@@ -190,6 +205,9 @@ export async function saveUploadAction(input: unknown): Promise<SaveUploadState>
         inserted_rows: rowsToInsert.length,
         replaced_rows: rowsToReplace.length,
         skipped_rows: skippedRows,
+        old_upload_id: upload.old_upload_id,
+        new_upload_status: upload.new_upload_status,
+        old_upload_archived: upload.old_upload_archived,
       },
     });
 
@@ -197,8 +215,13 @@ export async function saveUploadAction(input: unknown): Promise<SaveUploadState>
 
     return {
       ok: true,
-      message: uploadStatus === "validated" ? "Upload saved and validated." : "Upload saved as draft.",
-      uploadId: upload.id,
+      message:
+        upload.new_upload_status === "archived"
+          ? "Upload saved as a safe history record. Existing results were skipped."
+          : uploadStatus === "validated"
+            ? "Upload saved and validated."
+            : "Upload saved as draft.",
+      uploadId: upload.new_upload_id,
       insertedRows: rowsToInsert.length,
       replacedRows: rowsToReplace.length,
       skippedRows,

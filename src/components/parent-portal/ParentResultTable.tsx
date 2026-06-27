@@ -1,5 +1,7 @@
 import type { ParentResultRow } from "@/lib/parent-portal/parent-result-types";
+import { formatPosition } from "@/lib/results/calculate-positions";
 import { getPerformanceBand } from "@/lib/results/performance-scale";
+import { getScoreInkClassName } from "@/lib/results/score-ink";
 import { cn } from "@/lib/utils";
 
 export function ParentResultTable({ rows }: { rows: ParentResultRow[] }) {
@@ -27,17 +29,17 @@ export function ParentResultTable({ rows }: { rows: ParentResultRow[] }) {
                   <td className="px-3 py-4">{row.ca}</td>
                   <td className="px-3 py-4">{row.exam}</td>
                   <td className="px-3 py-4">
-                    <span className={cn("inline-flex min-w-16 justify-center rounded-full border px-3 py-1 font-semibold", performance.className)}>
+                    <span className={cn("inline-flex min-w-16 justify-center px-3 py-1 font-semibold", getScoreInkClassName(row.total))}>
                       {row.total}
                     </span>
                   </td>
                   <td className="px-3 py-4">
-                    <span className={cn("inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold", performance.className)}>
+                    <span className={cn("inline-flex px-2.5 py-1 text-xs font-semibold", getScoreInkClassName(row.total))}>
                       {performance.grade} | {performance.label}
                     </span>
                   </td>
                   <td className="px-3 py-4">{row.remark ?? performance.label}</td>
-                  <td className="px-3 py-4">{row.position ?? "-"}</td>
+                  <td className="px-3 py-4">{formatPosition(row.position)}</td>
                 </tr>
               );
             })}
@@ -56,13 +58,13 @@ export function ParentResultTable({ rows }: { rows: ParentResultRow[] }) {
                 <p className="font-semibold text-slate-950">{row.subject}</p>
                 <p className="mt-1 text-sm text-slate-500">{row.remark ?? performance.label}</p>
               </div>
-              <span className={cn("rounded-full border px-3 py-1 text-sm font-semibold", performance.className)}>{performance.grade}</span>
+              <span className={cn("px-3 py-1 text-sm font-semibold", getScoreInkClassName(row.total))}>{performance.grade}</span>
             </div>
             <div className="mt-4 grid grid-cols-4 gap-2 text-center text-sm">
               <Score label="CA" value={row.ca} />
               <Score label="Exam" value={row.exam} />
-              <Score label="Total" value={row.total} />
-              <Score label="Position" value={row.position ?? "-"} />
+              <Score ink label="Total" value={row.total} />
+              <Score label="Position" value={formatPosition(row.position)} />
             </div>
           </article>
         );
@@ -72,11 +74,11 @@ export function ParentResultTable({ rows }: { rows: ParentResultRow[] }) {
   );
 }
 
-function Score({ label, value }: { label: string; value: string | number }) {
+function Score({ label, value, ink = false }: { label: string; value: string | number; ink?: boolean }) {
   return (
     <div className="rounded-xl bg-white p-2">
       <p className="text-xs text-slate-500">{label}</p>
-      <p className="mt-1 font-semibold text-slate-950">{value}</p>
+      <p className={cn("mt-1 font-semibold text-slate-950", ink && typeof value === "number" && getScoreInkClassName(value))}>{value}</p>
     </div>
   );
 }

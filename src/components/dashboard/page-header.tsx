@@ -20,7 +20,7 @@ export function PageHeader({ eyebrow, title, description, actions, className }: 
           {description ? <p className="max-w-2xl text-sm leading-6 text-slate-300 sm:text-base">{description}</p> : null}
         </div>
       </div>
-      {actions ? <div className="flex shrink-0 items-center gap-2">{actions}</div> : null}
+      {actions ? <div className="flex shrink-0 flex-wrap items-center gap-2">{actions}</div> : null}
     </div>
   );
 }

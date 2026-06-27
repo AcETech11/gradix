@@ -43,6 +43,37 @@ export async function publishResultsAction(uploadId: string): Promise<ResultActi
     return { ok: false, message: countError.message };
   }
 
+  const publishedAt = new Date().toISOString();
+  const { error: oldResultsError } = await supabase
+    .from("results")
+    .update({ is_published: false })
+    .eq("school_id", profile.school_id)
+    .eq("class_id", upload.class_id)
+    .eq("term", upload.term)
+    .eq("academic_year", upload.academic_year)
+    .eq("is_published", true)
+    .neq("upload_id", upload.id);
+
+  if (oldResultsError) {
+    return { ok: false, message: oldResultsError.message };
+  }
+
+  const { error: oldUploadsError } = await supabase
+    .from("result_uploads")
+    .update({
+      status: "archived",
+    })
+    .eq("school_id", profile.school_id)
+    .eq("class_id", upload.class_id)
+    .eq("term", upload.term)
+    .eq("academic_year", upload.academic_year)
+    .eq("status", "published")
+    .neq("id", upload.id);
+
+  if (oldUploadsError) {
+    return { ok: false, message: oldUploadsError.message };
+  }
+
   const { error: resultsError } = await supabase
     .from("results")
     .update({ is_published: true })
@@ -53,7 +84,6 @@ export async function publishResultsAction(uploadId: string): Promise<ResultActi
     return { ok: false, message: resultsError.message };
   }
 
-  const publishedAt = new Date().toISOString();
   const { error: uploadUpdateError } = await supabase
     .from("result_uploads")
     .update({
@@ -97,6 +127,7 @@ export async function publishResultsAction(uploadId: string): Promise<ResultActi
       term: upload.term,
       academic_year: upload.academic_year,
       result_count: count ?? 0,
+      replaced_previous_published_version: true,
     },
   });
 

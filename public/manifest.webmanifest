@@ -1,0 +1,31 @@
+{
+  "name": "Gradix",
+  "short_name": "Gradix",
+  "description": "School result management system for Excel result upload, online report cards, and parent result checking.",
+  "start_url": "/dashboard",
+  "scope": "/dashboard/",
+  "display": "standalone",
+  "background_color": "#070D1A",
+  "theme_color": "#F97316",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/maskable-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

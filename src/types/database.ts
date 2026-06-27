@@ -4,7 +4,15 @@ export type AppRole = "admin" | "headmaster" | "teacher" | "parent";
 export type SubscriptionStatus = "trialing" | "active" | "past_due" | "paused" | "canceled";
 export type SchoolTerm = "first" | "second" | "third";
 export type UploadStatus = "draft" | "validating" | "validated" | "failed" | "published" | "archived";
-export type AuditAction = "insert" | "update" | "delete" | "publish" | "unpublish" | "validate";
+export type AuditAction =
+  | "insert"
+  | "update"
+  | "delete"
+  | "publish"
+  | "unpublish"
+  | "validate"
+  | "result_upload_replaced"
+  | "payment_submission_created";
 export type StudentStatus = "active" | "inactive" | "repeated" | "graduated" | "transferred" | "withdrawn" | "archived";
 export type StudentEnrollmentStatus = "active" | "promoted" | "repeated" | "graduated" | "transferred" | "withdrawn" | "archived";
 
@@ -135,6 +143,10 @@ export type Database = {
           class_teacher_comment: string | null;
           principal_comment: string | null;
           class_teacher_id: string | null;
+          attendance_present: number | null;
+          attendance_absent: number | null;
+          affective_domain: Json;
+          psychomotor_domain: Json;
           published_at: string | null;
           created_at: string;
           updated_at: string;
@@ -142,6 +154,89 @@ export type Database = {
         Insert: Partial<Database["public"]["Tables"]["student_term_reports"]["Row"]> &
           Pick<Database["public"]["Tables"]["student_term_reports"]["Row"], "school_id" | "student_id" | "class_id" | "academic_year" | "term">;
         Update: Partial<Database["public"]["Tables"]["student_term_reports"]["Row"]>;
+        Relationships: [];
+      };
+      class_term_report_settings: {
+        Row: {
+          id: string;
+          school_id: string;
+          class_id: string;
+          academic_year: string;
+          term: SchoolTerm;
+          school_open_days: number | null;
+          term_ends_on: string | null;
+          next_term_begins_on: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Partial<Database["public"]["Tables"]["class_term_report_settings"]["Row"]> &
+          Pick<Database["public"]["Tables"]["class_term_report_settings"]["Row"], "school_id" | "class_id" | "academic_year" | "term">;
+        Update: Partial<Database["public"]["Tables"]["class_term_report_settings"]["Row"]>;
+        Relationships: [];
+      };
+      manual_payment_requests: {
+        Row: {
+          id: string;
+          school_id: string;
+          subscription_plan: string;
+          billing_period: string;
+          payment_reference: string;
+          amount_expected: number;
+          currency: string;
+          status: "open" | "submitted" | "approved" | "closed";
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Partial<Database["public"]["Tables"]["manual_payment_requests"]["Row"]> &
+          Pick<
+            Database["public"]["Tables"]["manual_payment_requests"]["Row"],
+            "school_id" | "subscription_plan" | "billing_period" | "payment_reference" | "amount_expected"
+          >;
+        Update: Partial<Database["public"]["Tables"]["manual_payment_requests"]["Row"]>;
+        Relationships: [];
+      };
+      payment_submissions: {
+        Row: {
+          id: string;
+          school_id: string;
+          payment_request_id: string;
+          subscription_id: string | null;
+          payment_reference: string;
+          billing_period: string;
+          subscription_plan: string;
+          amount_expected: number | null;
+          amount_paid: number;
+          currency: string;
+          payer_name: string;
+          payer_bank: string;
+          bank_transfer_reference: string | null;
+          paid_at: string;
+          proof_path: string;
+          proof_mime_type: "image/jpeg" | "image/png" | "application/pdf";
+          note: string | null;
+          status: "pending_verification" | "approved" | "rejected" | "cancelled";
+          reviewed_by: string | null;
+          reviewed_at: string | null;
+          rejection_reason: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Partial<Database["public"]["Tables"]["payment_submissions"]["Row"]> &
+          Pick<
+            Database["public"]["Tables"]["payment_submissions"]["Row"],
+            | "school_id"
+            | "payment_request_id"
+            | "payment_reference"
+            | "billing_period"
+            | "subscription_plan"
+            | "amount_paid"
+            | "payer_name"
+            | "payer_bank"
+            | "paid_at"
+            | "proof_path"
+            | "proof_mime_type"
+          >;
+        Update: Partial<Database["public"]["Tables"]["payment_submissions"]["Row"]>;
         Relationships: [];
       };
       platform_admins: {
@@ -441,6 +536,16 @@ export type Database = {
           target_academic_year: string;
         };
         Returns: undefined;
+      };
+      create_result_upload_for_save: {
+        Args: {
+          target_class_id: string;
+          target_term: SchoolTerm;
+          target_academic_year: string;
+          replacement_mode: boolean;
+          upload_payload: Json;
+        };
+        Returns: Json;
       };
       get_public_student_result: {
         Args: {

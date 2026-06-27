@@ -53,6 +53,7 @@ export const brandingSchema = z.object({
 });
 
 export const reportSettingsSchema = z.object({
+  reportFormat: z.enum(["standard", "comprehensive_primary"]),
   reportTitle: z.string().min(3, "Report title is required.").max(120),
   showSchoolMotto: z.boolean(),
   showStudentCode: z.boolean(),
@@ -60,6 +61,11 @@ export const reportSettingsSchema = z.object({
   showClassPosition: z.boolean(),
   showGradingGuide: z.boolean(),
   showPerformanceSummary: z.boolean(),
+  showAttendanceRecord: z.boolean(),
+  showAffectiveDomain: z.boolean(),
+  showPsychomotorDomain: z.boolean(),
+  showRatingScale: z.boolean(),
+  attendanceOpenDaysLabel: z.string().min(2, "Attendance label is required.").max(80),
   footerNote: z.string().max(220).optional(),
   principalComment: z.string().max(240).optional(),
   classTeacherComment: z.string().max(240).optional(),

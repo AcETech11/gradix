@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 
 import { ClassTeacherCommentDialog } from "@/components/results/ClassTeacherCommentDialog";
+import { ReportDetailsDialog } from "@/components/results/ReportDetailsDialog";
 import { ResultStatusBadge } from "@/components/results/ResultStatusBadge";
 import { ScoreEditDialog } from "@/components/results/ScoreEditDialog";
 import type { ResultReviewRow } from "@/lib/results/result-types";
@@ -11,9 +12,17 @@ type ResultReviewTableProps = {
   rows: ResultReviewRow[];
   canEdit: boolean;
   uploadId: string;
+  schoolOpenDays: number | null;
+  canEditReportDetails: boolean;
 };
 
-export function ResultReviewTable({ canEdit, rows, uploadId }: ResultReviewTableProps) {
+function formatRatings(ratings: Record<string, number | undefined>) {
+  const entries = Object.entries(ratings).filter(([, rating]) => rating !== undefined);
+
+  return entries.length ? entries.map(([trait, rating]) => `${trait}: ${rating}`).join("; ") : "";
+}
+
+export function ResultReviewTable({ canEdit, canEditReportDetails, rows, uploadId, schoolOpenDays }: ResultReviewTableProps) {
   const [message, setMessage] = useState("");
   const [search, setSearch] = useState("");
   const [subject, setSubject] = useState("all");
@@ -86,7 +95,7 @@ export function ResultReviewTable({ canEdit, rows, uploadId }: ResultReviewTable
         <table className="min-w-[82rem] w-full text-left text-sm">
           <thead className="text-xs uppercase tracking-[0.12em] text-slate-400">
             <tr className="border-b border-white/10">
-              {["Student Code", "Student Name", "Admission", "Subject", "CA", "Exam", "Total", "Grade", "Remark", "Teacher Comment", "Status", "Edited", "Actions"].map((header) => (
+              {["Student Code", "Student Name", "Admission", "Subject", "CA", "Exam", "Total", "Grade", "Remark", "Attendance", "Domains", "Teacher Comment", "Status", "Edited", "Actions"].map((header) => (
                 <th className="px-3 py-3 font-medium" key={header}>
                   {header}
                 </th>
@@ -105,6 +114,12 @@ export function ResultReviewTable({ canEdit, rows, uploadId }: ResultReviewTable
                 <td className="px-3 py-3">{row.totalScore}</td>
                 <td className="px-3 py-3">{row.grade}</td>
                 <td className="max-w-56 px-3 py-3">{row.remark ?? "-"}</td>
+                <td className="px-3 py-3">
+                  {row.attendancePresent !== null || row.attendanceAbsent !== null ? `${row.attendancePresent ?? "-"} / ${row.attendanceAbsent ?? "-"}` : "-"}
+                </td>
+                <td className="max-w-72 px-3 py-3 text-xs leading-5">
+                  {[formatRatings(row.affectiveDomain), formatRatings(row.psychomotorDomain)].filter(Boolean).join(" | ") || "-"}
+                </td>
                 <td className="max-w-64 px-3 py-3">{row.classTeacherComment ?? "-"}</td>
                 <td className="px-3 py-3">
                   <ResultStatusBadge status={row.isPublished ? "published" : "validated"}>{row.isPublished ? "Published" : "Unpublished"}</ResultStatusBadge>
@@ -116,6 +131,7 @@ export function ResultReviewTable({ canEdit, rows, uploadId }: ResultReviewTable
                   <div className="flex flex-wrap gap-2">
                     <ScoreEditDialog disabled={!canEdit} onMessage={setMessage} result={row} />
                     <ClassTeacherCommentDialog disabled={!canEdit} onMessage={setMessage} result={row} uploadId={uploadId} />
+                    <ReportDetailsDialog disabled={!canEditReportDetails} onMessage={setMessage} result={row} schoolOpenDays={schoolOpenDays} uploadId={uploadId} />
                   </div>
                 </td>
               </tr>
@@ -142,12 +158,15 @@ export function ResultReviewTable({ canEdit, rows, uploadId }: ResultReviewTable
               <p>Total: {row.totalScore}</p>
               <p>Admission: {row.admissionNumber ?? "N/A"}</p>
               <p className="col-span-2">Teacher comment: {row.classTeacherComment ?? "-"}</p>
+              <p className="col-span-2">Attendance: {row.attendancePresent ?? "-"} present / {row.attendanceAbsent ?? "-"} absent</p>
+              <p className="col-span-2">Domains: {[formatRatings(row.affectiveDomain), formatRatings(row.psychomotorDomain)].filter(Boolean).join(" | ") || "-"}</p>
             </div>
             {row.editedAfterPublish ? <div className="mt-3"><ResultStatusBadge status="edited-after-publish" /></div> : null}
             <div className="mt-4">
               <div className="flex flex-wrap gap-2">
                 <ScoreEditDialog disabled={!canEdit} onMessage={setMessage} result={row} />
                 <ClassTeacherCommentDialog disabled={!canEdit} onMessage={setMessage} result={row} uploadId={uploadId} />
+                <ReportDetailsDialog disabled={!canEditReportDetails} onMessage={setMessage} result={row} schoolOpenDays={schoolOpenDays} uploadId={uploadId} />
               </div>
             </div>
           </article>

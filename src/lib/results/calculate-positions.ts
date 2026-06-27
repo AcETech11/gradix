@@ -30,6 +30,12 @@ export function formatPosition(position: number | null | undefined) {
   return position ? `${position}${ordinalSuffix(position)}` : "-";
 }
 
+export function formatPositionOutOf(position: number | null | undefined, total: number | null | undefined) {
+  if (!position) return "-";
+
+  return total && total > 0 ? `${formatPosition(position)} out of ${total}` : formatPosition(position);
+}
+
 function rankedPositions<TItem>(items: TItem[], compare: (first: TItem, second: TItem) => number, isTie: (first: TItem, second: TItem) => boolean) {
   const sorted = [...items].sort(compare);
   const positions = new Map<TItem, number>();

@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import type { SchoolTerm } from "@/types/database";
+import type { ClassTermReportDetails, TraitRatingMap } from "@/lib/reports/primary-report";
 
 export const duplicateStrategies = ["skip", "replace"] as const;
 
@@ -55,12 +56,30 @@ export type ParsedTemplateRow = {
   values: Record<string, string | number | null>;
 };
 
+export type ParsedReportDetailsRow = {
+  rowNumber: number;
+  studentCode: string;
+  studentName: string;
+  attendancePresent: number | null;
+  attendanceAbsent: number | null;
+  affectiveDomain: TraitRatingMap;
+  psychomotorDomain: TraitRatingMap;
+  classTeacherComment: string;
+  values: Record<string, string | number | null>;
+};
+
 export type ParsedResultTemplate = {
   headers: string[];
   rows: ParsedTemplateRow[];
   subjectColumns: ParsedSubjectColumns[];
   unknownSubjectColumns: string[];
   missingIdentityHeaders: string[];
+  reportDetailsRows: ParsedReportDetailsRow[];
+  hasReportDetailsSheet: boolean;
+  termDetails: ClassTermReportDetails | null;
+  hasTermDetailsSheet: boolean;
+  reportDetailErrors: string[];
+  termDetailErrors: string[];
 };
 
 export type UploadPreviewStatus = "valid" | "warning" | "duplicate" | "invalid";
@@ -81,6 +100,10 @@ export type UploadPreviewRow = {
   grade: string;
   remark: string;
   classTeacherComment: string;
+  attendancePresent: number | null;
+  attendanceAbsent: number | null;
+  affectiveDomain: TraitRatingMap;
+  psychomotorDomain: TraitRatingMap;
   errors: string[];
   warnings: string[];
   isExistingDuplicate: boolean;

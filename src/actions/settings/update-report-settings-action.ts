@@ -14,10 +14,16 @@ export async function updateReportSettingsAction(input: unknown): Promise<Settin
   try {
     const profile = await requireSettingsViewer();
     const { supabase, metadata } = await getSchoolForUpdate(profile.school_id);
+    const reportSettings = {
+      ...parsed.data,
+      principalComment: parsed.data.principalComment?.trim() ?? "",
+      classTeacherComment: parsed.data.classTeacherComment?.trim() ?? "",
+      footerNote: parsed.data.footerNote?.trim() ?? "",
+    };
     const oldSettings = metadata.report_settings ?? null;
     const nextMetadata = {
       ...metadata,
-      report_settings: parsed.data,
+      report_settings: reportSettings,
     };
     const { error } = await supabase.from("schools").update({ metadata: nextMetadata }).eq("id", profile.school_id);
 
@@ -30,7 +36,7 @@ export async function updateReportSettingsAction(input: unknown): Promise<Settin
       actorId: profile.id,
       actorRole: profile.role,
       action: "report_settings_updated",
-      details: { old_values: oldSettings, new_values: parsed.data },
+      details: { old_values: oldSettings, new_values: reportSettings },
     });
     revalidateSettings();
 

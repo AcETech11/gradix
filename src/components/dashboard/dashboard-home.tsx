@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { formatDistanceToNow } from "date-fns";
-import { ArrowRight, Sparkles } from "lucide-react";
+import { ArrowRight, FileDown, Sparkles } from "lucide-react";
 
 import { getAnalyticsOverviewAction } from "@/actions/analytics/get-analytics-overview-action";
 import { getAuditLogsAction } from "@/actions/audit/get-audit-logs-action";
@@ -130,13 +130,21 @@ export async function DashboardHome() {
         title="Your school result workspace."
         description="Manage students, result uploads, published reports, parent access, analytics, and school settings from one secure workspace."
         actions={canViewLeadershipData ? (
-          <Button asChild className="bg-orange-500 text-slate-950 hover:bg-orange-400">
-            <Link href="/onboarding">
-              <Sparkles className="size-4" />
-              Review onboarding
-              <ArrowRight className="size-4" />
-            </Link>
-          </Button>
+          <>
+            <Button asChild className="border border-white/10 bg-white/5 text-slate-100 hover:bg-white/10" variant="ghost">
+              <Link href="/dashboard/summary/print">
+                <FileDown className="size-4" />
+                Download Summary
+              </Link>
+            </Button>
+            <Button asChild className="bg-orange-500 text-slate-950 hover:bg-orange-400">
+              <Link href="/onboarding">
+                <Sparkles className="size-4" />
+                Review onboarding
+                <ArrowRight className="size-4" />
+              </Link>
+            </Button>
+          </>
         ) : undefined}
       />
 

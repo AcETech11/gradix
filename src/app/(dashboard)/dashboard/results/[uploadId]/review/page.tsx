@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 
 import { getUploadResultsAction } from "@/actions/results/get-upload-results-action";
 import { PageHeader } from "@/components/dashboard/page-header";
+import { ClassTermReportSettingsPanel } from "@/components/results/ClassTermReportSettingsPanel";
 import { PostPublishEditWarning } from "@/components/results/PostPublishEditWarning";
 import { PublishConfirmationDialog } from "@/components/results/PublishConfirmationDialog";
 import { ResultReviewTable } from "@/components/results/ResultReviewTable";
@@ -17,6 +18,7 @@ export default async function ResultReviewPage({ params }: ResultReviewPageProps
   const { uploadId } = await params;
   const { upload, rows } = await getDetailOrNotFound(uploadId);
   const hasPublishedRows = rows.some((row) => row.isPublished);
+  const hasIncompleteTermDetails = upload.schoolOpenDays === null || !upload.termEndsOn || !upload.nextTermBeginsOn;
 
   return (
     <div className="space-y-6">
@@ -40,8 +42,21 @@ export default async function ResultReviewPage({ params }: ResultReviewPageProps
       </section>
 
       {hasPublishedRows && upload.canEdit ? <PostPublishEditWarning /> : null}
+      {hasIncompleteTermDetails ? (
+        <div className="rounded-2xl border border-amber-300/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
+          Term Details are incomplete. Attendance Record and term dates will not appear on the report.
+        </div>
+      ) : null}
 
-      <ResultReviewTable canEdit={upload.canEdit} rows={rows} uploadId={upload.id} />
+      <ClassTermReportSettingsPanel upload={upload} />
+
+      <ResultReviewTable
+        canEdit={upload.canEdit}
+        canEditReportDetails={upload.canEditReportDetails}
+        rows={rows}
+        schoolOpenDays={upload.schoolOpenDays}
+        uploadId={upload.id}
+      />
     </div>
   );
 }

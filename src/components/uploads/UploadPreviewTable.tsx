@@ -15,6 +15,12 @@ const statusStyles: Record<UploadPreviewStatus, string> = {
   invalid: "border-red-300/20 bg-red-500/10 text-red-100",
 };
 
+function formatRatings(ratings: Record<string, number | undefined>) {
+  const entries = Object.entries(ratings).filter(([, rating]) => rating !== undefined);
+
+  return entries.length ? entries.map(([trait, rating]) => `${trait}: ${rating}`).join("; ") : "";
+}
+
 export function UploadPreviewTable({ rows }: UploadPreviewTableProps) {
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<"all" | UploadPreviewStatus>("all");
@@ -67,10 +73,10 @@ export function UploadPreviewTable({ rows }: UploadPreviewTableProps) {
       </div>
 
       <div className="mt-4 overflow-x-auto">
-        <table className="min-w-[70rem] w-full text-left text-sm">
+        <table className="min-w-[86rem] w-full text-left text-sm">
           <thead className="text-xs uppercase tracking-[0.12em] text-slate-400">
             <tr className="border-b border-white/10">
-              {["Status", "Student Code", "Student Name", "Admission Number", "Subject", "CA", "Exam", "Total", "Grade", "Remark", "Errors"].map(
+              {["Status", "Student Code", "Student Name", "Admission Number", "Subject", "CA", "Exam", "Total", "Grade", "Attendance", "Domains", "Remark", "Errors"].map(
                 (header) => (
                   <th className="px-3 py-3 font-medium" key={header}>
                     {header}
@@ -93,6 +99,12 @@ export function UploadPreviewTable({ rows }: UploadPreviewTableProps) {
                 <td className="px-3 py-3">{row.exam ?? "-"}</td>
                 <td className="px-3 py-3">{row.total ?? "-"}</td>
                 <td className="px-3 py-3">{row.grade}</td>
+                <td className="px-3 py-3">
+                  {row.attendancePresent !== null || row.attendanceAbsent !== null ? `${row.attendancePresent ?? "-"} present / ${row.attendanceAbsent ?? "-"} absent` : "-"}
+                </td>
+                <td className="px-3 py-3">
+                  {[formatRatings(row.affectiveDomain), formatRatings(row.psychomotorDomain)].filter(Boolean).join(" | ") || "-"}
+                </td>
                 <td className="px-3 py-3">{row.remark || "-"}</td>
                 <td className="max-w-80 px-3 py-3 text-xs leading-5 text-red-200">
                   {[...row.errors, ...row.warnings].join(" ")}

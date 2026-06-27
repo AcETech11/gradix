@@ -40,7 +40,7 @@ export async function updateClassTeacherCommentAction(input: unknown): Promise<R
       class_teacher_comment: parsed.data.comment,
       updated_at: new Date().toISOString(),
     },
-    { onConflict: "school_id,student_id,class_id,academic_year,term" },
+    { onConflict: "school_id,student_id,class_id,academic_year,term,upload_id" },
   );
 
   if (reportError) {

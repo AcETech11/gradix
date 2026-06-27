@@ -1,5 +1,6 @@
 import { calculateGrade } from "@/lib/uploads/grading";
 import { normalizeTemplateSubjectName, parseResultTemplate } from "@/lib/uploads/parse-result-template";
+import { AFFECTIVE_TRAITS, PSYCHOMOTOR_TRAITS, type TraitRatingMap } from "@/lib/reports/primary-report";
 import type {
   ParsedSubjectColumns,
   UploadPreviewRow,
@@ -47,6 +48,20 @@ function numberFromCell(value: string | number | null | undefined) {
 
 function textFromCell(value: string | number | null | undefined) {
   return String(value ?? "").trim();
+}
+
+function isWholeNumber(value: number | null) {
+  return value === null || (Number.isInteger(value) && value >= 0);
+}
+
+function validateRatingMap(map: TraitRatingMap, label: string) {
+  return Object.entries(map).flatMap(([trait, rating]) => {
+    if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
+      return [`${label} rating for ${trait} must be a whole number from 1 to 5.`];
+    }
+
+    return [];
+  });
 }
 
 function findSubjectColumns(subject: UploadSubject, columns: ParsedSubjectColumns[]) {
@@ -161,6 +176,20 @@ export function validateResultUpload(options: ValidateResultUploadOptions): Uplo
     messages.push(`Unknown subject columns were ignored: ${parsed.unknownSubjectColumns.join(", ")}.`);
   }
 
+  if (!parsed.hasReportDetailsSheet || !parsed.hasTermDetailsSheet) {
+    messages.push("Attendance and developmental report details were not included. You can add them in Result Review before publishing.");
+  }
+
+  if (parsed.hasReportDetailsSheet) {
+    messages.push(`Student report details detected for ${parsed.reportDetailsRows.length} student${parsed.reportDetailsRows.length === 1 ? "" : "s"}.`);
+  }
+
+  if (parsed.hasTermDetailsSheet && parsed.termDetails) {
+    messages.push("Term Details detected and ready to save for this class, term, and academic year.");
+  }
+
+  messages.push(...parsed.reportDetailErrors, ...parsed.termDetailErrors);
+
   const missingSubjectColumns = options.subjects.flatMap((subject) => {
     const columns = findSubjectColumns(subject, parsed.subjectColumns);
     const missing: string[] = [];
@@ -176,8 +205,11 @@ export function validateResultUpload(options: ValidateResultUploadOptions): Uplo
     messages.push(`Missing subject columns: ${missingSubjectColumns.join(", ")}.`);
   }
 
+  const reportDetailsByCode = new Map(parsed.reportDetailsRows.map((row) => [row.studentCode.toLowerCase(), row]));
+  const workbookErrors = [...parsed.reportDetailErrors, ...parsed.termDetailErrors];
   const rows: UploadPreviewRow[] = parsed.rows.flatMap((templateRow) => {
     const student = studentsByCode.get(templateRow.studentCode.toLowerCase());
+    const reportDetails = reportDetailsByCode.get(templateRow.studentCode.toLowerCase());
     const base = getBaseRowErrors({
       className: options.className,
       duplicateStudentCodes,
@@ -194,9 +226,18 @@ export function validateResultUpload(options: ValidateResultUploadOptions): Uplo
       const exam = numberFromCell(subjectColumns?.examHeader ? templateRow.values[subjectColumns.examHeader] : null);
       const remark = textFromCell(subjectColumns?.remarkHeader ? templateRow.values[subjectColumns.remarkHeader] : "");
       const errors = [
+        ...workbookErrors,
         ...base.errors,
         ...(subjectColumns ? [] : [`Missing columns for ${subject.name}.`]),
         ...scoreErrors(ca, exam),
+        ...(reportDetails?.attendancePresent !== undefined && !isWholeNumber(reportDetails.attendancePresent)
+          ? ["Attendance Present must be a whole number greater than or equal to 0."]
+          : []),
+        ...(reportDetails?.attendanceAbsent !== undefined && !isWholeNumber(reportDetails.attendanceAbsent)
+          ? ["Attendance Absent must be a whole number greater than or equal to 0."]
+          : []),
+        ...validateRatingMap(reportDetails?.affectiveDomain ?? {}, "Affective"),
+        ...validateRatingMap(reportDetails?.psychomotorDomain ?? {}, "Psychomotor"),
       ];
       const warnings = [...base.warnings];
       const total = ca !== null && exam !== null && !Number.isNaN(ca) && !Number.isNaN(exam) ? ca + exam : null;
@@ -208,6 +249,23 @@ export function validateResultUpload(options: ValidateResultUploadOptions): Uplo
             ? "Existing result will be replaced."
             : "Existing result will be skipped.",
         );
+      }
+
+      if (student && reportDetails?.studentName && reportDetails.studentName.toLowerCase() !== student.name.toLowerCase()) {
+        warnings.push("Student report details name does not match the existing student record.");
+      }
+
+      if (parsed.termDetails?.schoolOpenDays !== null && parsed.termDetails?.schoolOpenDays !== undefined) {
+        const present = reportDetails?.attendancePresent;
+        const absent = reportDetails?.attendanceAbsent;
+
+        if (present !== null && absent !== null && present !== undefined && absent !== undefined && present + absent > parsed.termDetails.schoolOpenDays) {
+          warnings.push("Attendance Present + Attendance Absent is greater than No. of Days School Opened.");
+        }
+      }
+
+      if (parsed.termDetails?.termEndsOn && parsed.termDetails.nextTermBeginsOn && parsed.termDetails.nextTermBeginsOn <= parsed.termDetails.termEndsOn) {
+        warnings.push("Next Term Begins should normally be after Term Ends.");
       }
 
       const status = errors.length
@@ -233,7 +291,15 @@ export function validateResultUpload(options: ValidateResultUploadOptions): Uplo
         total,
         grade: total === null ? "N/A" : calculateGrade(total).grade,
         remark,
-        classTeacherComment: templateRow.classTeacherComment,
+        classTeacherComment: reportDetails?.classTeacherComment || templateRow.classTeacherComment,
+        attendancePresent: reportDetails?.attendancePresent ?? null,
+        attendanceAbsent: reportDetails?.attendanceAbsent ?? null,
+        affectiveDomain: {
+          ...Object.fromEntries(AFFECTIVE_TRAITS.map((trait) => [trait, reportDetails?.affectiveDomain[trait]]).filter(([, value]) => value !== undefined)),
+        },
+        psychomotorDomain: {
+          ...Object.fromEntries(PSYCHOMOTOR_TRAITS.map((trait) => [trait, reportDetails?.psychomotorDomain[trait]]).filter(([, value]) => value !== undefined)),
+        },
         errors,
         warnings,
         isExistingDuplicate,
@@ -263,6 +329,12 @@ export function validateResultUpload(options: ValidateResultUploadOptions): Uplo
       messages,
     },
   };
+}
+
+export function getParsedClassTermDetails(fileBase64: string) {
+  const parsed = parseResultTemplate(fileBase64);
+
+  return parsed.termDetails;
 }
 
 export function getSavableRows(result: UploadValidationResult) {

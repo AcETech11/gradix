@@ -33,7 +33,7 @@ export function Topbar({ school, profile, role, onMenuClick }: TopbarProps) {
   const [open, setOpen] = useState(false);
 
   return (
-    <header className="sticky top-0 z-30 border-b border-white/10 bg-[#07111f]/90 backdrop-blur-xl">
+    <header className="dashboard-print-hidden sticky top-0 z-30 border-b border-white/10 bg-[#07111f]/90 backdrop-blur-xl">
       <div className="px-4 py-3 sm:px-6 lg:px-8">
         <div className="flex items-center gap-3">
           <Button
