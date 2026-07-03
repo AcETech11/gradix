@@ -10,11 +10,15 @@ export function formatTerm(term: SchoolTerm) {
   return labels[term];
 }
 
-export function formatViews(used: number, max: number) {
+export function formatViews(used: number, max: number | null) {
+  if (max === null) return `${used} views used / Unlimited`;
+
   return `${used} / ${max} views used`;
 }
 
-export function formatRemaining(used: number, max: number) {
+export function formatRemaining(used: number, max: number | null) {
+  if (max === null) return "Unlimited views remaining";
+
   return `${Math.max(max - used, 0)} views remaining`;
 }
 

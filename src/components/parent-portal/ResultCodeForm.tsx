@@ -2,33 +2,39 @@
 
 import { useState } from "react";
 import { ArrowRight, ShieldCheck } from "lucide-react";
-import { motion } from "motion/react";
 
 import { lookupResultCodeAction } from "@/actions/parent-portal/lookup-result-code-action";
 import { normalizeResultCode } from "@/lib/parent-portal/normalize-result-code";
+import type { PublicSchoolPortal } from "@/lib/parent-portal/school-portal";
 
 type ResultCodeFormProps = {
   errorMessage?: string;
+  school?: PublicSchoolPortal | null;
+  routeScope?: "path" | "host" | "generic";
 };
 
-export function ResultCodeForm({ errorMessage }: ResultCodeFormProps) {
+export function ResultCodeForm({ errorMessage, school, routeScope = "generic" }: ResultCodeFormProps) {
   const [code, setCode] = useState("");
-  const normalizedCode = normalizeResultCode(code);
+  const isBranded = Boolean(school);
 
   return (
-    <motion.form
+    <form
       action={lookupResultCodeAction}
-      animate={{ opacity: 1, y: 0 }}
-      className="w-full max-w-xl rounded-[1.75rem] border border-slate-200 bg-white p-5 shadow-[0_30px_80px_-45px_rgba(15,23,42,0.35)] sm:p-8"
-      initial={{ opacity: 0, y: 12 }}
-      transition={{ duration: 0.28, ease: "easeOut" }}
+      className="w-full max-w-xl rounded-3xl border border-slate-200 bg-white p-5 shadow-[0_24px_70px_-48px_rgba(15,23,42,0.38)] sm:p-8"
     >
-      <div className="mx-auto flex size-14 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-700">
+      <input name="schoolSlug" type="hidden" value={school?.slug ?? ""} />
+      <input name="routeScope" type="hidden" value={routeScope} />
+      <div className="mx-auto flex size-14 items-center justify-center rounded-2xl border border-slate-200 bg-slate-50 text-slate-900">
         <ShieldCheck className="size-7" />
       </div>
       <div className="mt-5 text-center">
-        <h1 className="text-3xl font-semibold tracking-tight text-slate-950 sm:text-4xl">Check Student Result</h1>
-        <p className="mt-3 text-base leading-7 text-slate-600">Enter the result code provided by your school.</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-orange-600">
+          {isBranded ? "Official Result Verification Portal" : "Secure Result Verification"}
+        </p>
+        <h1 className="mt-2 text-3xl font-semibold tracking-tight text-slate-950 sm:text-4xl">Check Student Result</h1>
+        <p className="mt-3 text-base leading-7 text-slate-600">
+          {school ? `Enter the result code issued by ${school.name}.` : "Enter the result code provided by your school. Only published results can be viewed."}
+        </p>
       </div>
 
       {errorMessage ? (
@@ -41,20 +47,23 @@ export function ResultCodeForm({ errorMessage }: ResultCodeFormProps) {
         </label>
         <input
           autoComplete="off"
-          className="h-14 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-center font-mono text-xl font-semibold tracking-[0.16em] text-slate-950 outline-none transition focus:border-emerald-400 focus:bg-white"
+          className="h-13 w-full rounded-2xl border border-slate-300 bg-white px-4 text-base font-medium text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-orange-500 focus:ring-4 focus:ring-orange-100"
           id="code"
           name="code"
           onChange={(event) => setCode(normalizeResultCode(event.target.value))}
-          placeholder="GRX-AB12CD"
+          placeholder="Enter your student result code"
           value={code}
         />
-        <p className="text-center text-xs text-slate-500">Formatted preview: {normalizedCode || "GRX-AB12CD"}</p>
+        <p className="text-xs text-slate-500">Example: GDXDE-4DBBC1FBB8</p>
       </div>
 
-      <button className="mt-6 inline-flex h-13 w-full items-center justify-center gap-2 rounded-2xl bg-slate-950 px-5 text-sm font-semibold text-white shadow-lg shadow-slate-300 transition hover:bg-slate-800" type="submit">
+      <button className="mt-6 inline-flex h-13 w-full items-center justify-center gap-2 rounded-2xl bg-slate-950 px-5 text-sm font-semibold text-white shadow-lg shadow-slate-200 transition hover:bg-slate-800 focus:outline-none focus:ring-4 focus:ring-orange-100" type="submit">
         Check Result
         <ArrowRight className="size-4" />
       </button>
-    </motion.form>
+      <p className="mt-5 text-center text-xs leading-5 text-slate-500">
+        {school ? "Securely powered by Gradix" : "Secure school result verification powered by Gradix"}
+      </p>
+    </form>
   );
 }

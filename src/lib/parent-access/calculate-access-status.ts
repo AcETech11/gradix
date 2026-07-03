@@ -3,13 +3,13 @@ import type { ParentAccessRecord } from "@/lib/parent-access/parent-access-types
 export function calculateAccessStatus(input: {
   hasPublishedResult: boolean;
   viewsUsed: number;
-  maxViews: number;
+  maxViews: number | null;
 }): ParentAccessRecord["status"] {
   if (!input.hasPublishedResult) {
     return "no_published_result";
   }
 
-  if (input.viewsUsed >= input.maxViews) {
+  if (input.maxViews !== null && input.viewsUsed >= input.maxViews) {
     return "limit_reached";
   }
 

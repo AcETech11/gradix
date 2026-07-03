@@ -1,22 +1,19 @@
-export const SCORE_INK_COLORS = {
-  red: "#B91C1C",
-  black: "#111827",
-  green: "#15803D",
-} as const;
+import {
+  getReportScoreColourClassName,
+  getReportScoreColourStyle,
+  getReportScoreColourTone,
+  REPORT_SCORE_COLOURS,
+  type ReportScoreColourTone,
+} from "@/lib/report-score-colour";
 
-export type ScoreInkTone = keyof typeof SCORE_INK_COLORS;
+export const SCORE_INK_COLORS = REPORT_SCORE_COLOURS;
 
-export function getScoreInkTone(score: number | null | undefined): ScoreInkTone {
-  if (typeof score !== "number" || !Number.isFinite(score) || score < 0 || score > 100) {
-    return "black";
-  }
+export type ScoreInkTone = ReportScoreColourTone;
 
-  if (score < 40) return "red";
-  if (score < 70) return "black";
-
-  return "green";
-}
+export const getScoreInkTone = getReportScoreColourTone;
 
 export function getScoreInkClassName(score: number | null | undefined) {
-  return `score-ink-${getScoreInkTone(score)}`;
+  return getReportScoreColourClassName(score);
 }
+
+export const getScoreInkStyle = getReportScoreColourStyle;

@@ -12,7 +12,9 @@ export type AuditAction =
   | "unpublish"
   | "validate"
   | "result_upload_replaced"
-  | "payment_submission_created";
+  | "payment_submission_created"
+  | "parent_result_viewed"
+  | "export";
 export type StudentStatus = "active" | "inactive" | "repeated" | "graduated" | "transferred" | "withdrawn" | "archived";
 export type StudentEnrollmentStatus = "active" | "promoted" | "repeated" | "graduated" | "transferred" | "withdrawn" | "archived";
 
@@ -553,6 +555,19 @@ export type Database = {
           requested_term?: SchoolTerm | null;
           requested_academic_year?: string | null;
         };
+        Returns: Json;
+      };
+      get_public_student_result_for_school: {
+        Args: {
+          input_code: string;
+          input_school_slug: string;
+          requested_term?: SchoolTerm | null;
+          requested_academic_year?: string | null;
+        };
+        Returns: Json;
+      };
+      get_public_school_portal: {
+        Args: { input_slug: string };
         Returns: Json;
       };
       get_staff_invitation: {

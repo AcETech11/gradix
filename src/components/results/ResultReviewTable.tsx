@@ -3,9 +3,11 @@
 import { useMemo, useState } from "react";
 
 import { ClassTeacherCommentDialog } from "@/components/results/ClassTeacherCommentDialog";
+import { ParentResultShareActions } from "@/components/results/ParentResultShareActions";
 import { ReportDetailsDialog } from "@/components/results/ReportDetailsDialog";
 import { ResultStatusBadge } from "@/components/results/ResultStatusBadge";
 import { ScoreEditDialog } from "@/components/results/ScoreEditDialog";
+import { buildParentShareMessage, buildSchoolPortalLink, buildStudentResultLink } from "@/lib/parent-portal/public-result-links";
 import type { ResultReviewRow } from "@/lib/results/result-types";
 
 type ResultReviewTableProps = {
@@ -14,6 +16,11 @@ type ResultReviewTableProps = {
   uploadId: string;
   schoolOpenDays: number | null;
   canEditReportDetails: boolean;
+  schoolName: string;
+  schoolSlug: string | null;
+  className: string;
+  term: string;
+  academicYear: string;
 };
 
 function formatRatings(ratings: Record<string, number | undefined>) {
@@ -22,7 +29,7 @@ function formatRatings(ratings: Record<string, number | undefined>) {
   return entries.length ? entries.map(([trait, rating]) => `${trait}: ${rating}`).join("; ") : "";
 }
 
-export function ResultReviewTable({ canEdit, canEditReportDetails, rows, uploadId, schoolOpenDays }: ResultReviewTableProps) {
+export function ResultReviewTable({ academicYear, canEdit, canEditReportDetails, className, rows, schoolName, schoolSlug, term, uploadId, schoolOpenDays }: ResultReviewTableProps) {
   const [message, setMessage] = useState("");
   const [search, setSearch] = useState("");
   const [subject, setSubject] = useState("all");
@@ -31,6 +38,18 @@ export function ResultReviewTable({ canEdit, canEditReportDetails, rows, uploadI
   const [publishedOnly, setPublishedOnly] = useState(false);
   const subjects = useMemo(() => Array.from(new Set(rows.map((row) => row.subjectName))).sort(), [rows]);
   const grades = useMemo(() => Array.from(new Set(rows.map((row) => row.grade))).sort(), [rows]);
+  const shareActionRowIds = useMemo(() => {
+    const seenStudents = new Set<string>();
+    const rowIds = new Set<string>();
+
+    rows.forEach((row) => {
+      if (!row.isPublished || seenStudents.has(row.studentId)) return;
+      seenStudents.add(row.studentId);
+      rowIds.add(row.id);
+    });
+
+    return rowIds;
+  }, [rows]);
   const filteredRows = useMemo(
     () =>
       rows.filter((row) => {
@@ -95,7 +114,7 @@ export function ResultReviewTable({ canEdit, canEditReportDetails, rows, uploadI
         <table className="min-w-[82rem] w-full text-left text-sm">
           <thead className="text-xs uppercase tracking-[0.12em] text-slate-400">
             <tr className="border-b border-white/10">
-              {["Student Code", "Student Name", "Admission", "Subject", "CA", "Exam", "Total", "Grade", "Remark", "Attendance", "Domains", "Teacher Comment", "Status", "Edited", "Actions"].map((header) => (
+              {["Student Code", "Student Name", "Admission", "Subject", "CA", "Exam", "Total", "Grade", "Remark", "Attendance", "Domains", "Teacher Comment", "Parent Views", "Status", "Edited", "Actions"].map((header) => (
                 <th className="px-3 py-3 font-medium" key={header}>
                   {header}
                 </th>
@@ -121,6 +140,7 @@ export function ResultReviewTable({ canEdit, canEditReportDetails, rows, uploadI
                   {[formatRatings(row.affectiveDomain), formatRatings(row.psychomotorDomain)].filter(Boolean).join(" | ") || "-"}
                 </td>
                 <td className="max-w-64 px-3 py-3">{row.classTeacherComment ?? "-"}</td>
+                <td className="px-3 py-3 text-xs text-slate-300">{formatParentViews(row)}</td>
                 <td className="px-3 py-3">
                   <ResultStatusBadge status={row.isPublished ? "published" : "validated"}>{row.isPublished ? "Published" : "Unpublished"}</ResultStatusBadge>
                 </td>
@@ -132,6 +152,23 @@ export function ResultReviewTable({ canEdit, canEditReportDetails, rows, uploadI
                     <ScoreEditDialog disabled={!canEdit} onMessage={setMessage} result={row} />
                     <ClassTeacherCommentDialog disabled={!canEdit} onMessage={setMessage} result={row} uploadId={uploadId} />
                     <ReportDetailsDialog disabled={!canEditReportDetails} onMessage={setMessage} result={row} schoolOpenDays={schoolOpenDays} uploadId={uploadId} />
+                    {row.isPublished && schoolSlug && shareActionRowIds.has(row.id) ? (
+                      <ParentResultShareActions
+                        directResultLink={buildStudentResultLink({ schoolSlug, studentCode: row.studentCode })}
+                        parentMessage={buildParentShareMessage({
+                          schoolName,
+                          studentName: row.studentName,
+                          studentCode: row.studentCode,
+                          className,
+                          term,
+                          academicYear,
+                          schoolPortalLink: buildSchoolPortalLink({ schoolSlug }),
+                          directResultLink: buildStudentResultLink({ schoolSlug, studentCode: row.studentCode }),
+                        })}
+                        shareTitle={`${schoolName} Student Result`}
+                        studentCode={row.studentCode}
+                      />
+                    ) : null}
                   </div>
                 </td>
               </tr>
@@ -160,6 +197,7 @@ export function ResultReviewTable({ canEdit, canEditReportDetails, rows, uploadI
               <p className="col-span-2">Teacher comment: {row.classTeacherComment ?? "-"}</p>
               <p className="col-span-2">Attendance: {row.attendancePresent ?? "-"} present / {row.attendanceAbsent ?? "-"} absent</p>
               <p className="col-span-2">Domains: {[formatRatings(row.affectiveDomain), formatRatings(row.psychomotorDomain)].filter(Boolean).join(" | ") || "-"}</p>
+              <p className="col-span-2">Parent Views: {formatParentViews(row)}</p>
             </div>
             {row.editedAfterPublish ? <div className="mt-3"><ResultStatusBadge status="edited-after-publish" /></div> : null}
             <div className="mt-4">
@@ -167,6 +205,23 @@ export function ResultReviewTable({ canEdit, canEditReportDetails, rows, uploadI
                 <ScoreEditDialog disabled={!canEdit} onMessage={setMessage} result={row} />
                 <ClassTeacherCommentDialog disabled={!canEdit} onMessage={setMessage} result={row} uploadId={uploadId} />
                 <ReportDetailsDialog disabled={!canEditReportDetails} onMessage={setMessage} result={row} schoolOpenDays={schoolOpenDays} uploadId={uploadId} />
+                {row.isPublished && schoolSlug && shareActionRowIds.has(row.id) ? (
+                  <ParentResultShareActions
+                    directResultLink={buildStudentResultLink({ schoolSlug, studentCode: row.studentCode })}
+                    parentMessage={buildParentShareMessage({
+                      schoolName,
+                      studentName: row.studentName,
+                      studentCode: row.studentCode,
+                      className,
+                      term,
+                      academicYear,
+                      schoolPortalLink: buildSchoolPortalLink({ schoolSlug }),
+                      directResultLink: buildStudentResultLink({ schoolSlug, studentCode: row.studentCode }),
+                    })}
+                    shareTitle={`${schoolName} Student Result`}
+                    studentCode={row.studentCode}
+                  />
+                ) : null}
               </div>
             </div>
           </article>
@@ -174,4 +229,12 @@ export function ResultReviewTable({ canEdit, canEditReportDetails, rows, uploadI
       </div>
     </section>
   );
+}
+
+function formatParentViews(row: ResultReviewRow) {
+  if (!row.isPublished) return "Not published";
+  if (row.parentAccessUseCount === null && row.parentAccessMaxUses === null) return "Parent Views: 0 / 10";
+  if (row.parentAccessMaxUses === null) return "Parent Views: Unlimited";
+
+  return `Parent Views: ${row.parentAccessUseCount ?? 0} / ${row.parentAccessMaxUses}`;
 }

@@ -148,7 +148,7 @@ export async function increaseParentAccessLimitAction(input: unknown): Promise<P
   try {
     const { profile, supabase, student, studentName, access } = await getAccessContext(parsed.data);
     const currentUseCount = access?.use_count ?? 0;
-    const oldMaxUses = access?.max_uses ?? 10;
+    const oldMaxUses = access ? access.max_uses : 10;
 
     if (parsed.data.maxUses < currentUseCount) {
       return { ok: false, message: "New limit must be greater than or equal to current views used." };
@@ -206,5 +206,68 @@ export async function increaseParentAccessLimitAction(input: unknown): Promise<P
     return { ok: true, message: "Parent access limit updated successfully." };
   } catch (error) {
     return { ok: false, message: error instanceof Error ? error.message : "Parent access limit could not be updated." };
+  }
+}
+
+export async function setParentAccessUnlimitedAction(input: unknown): Promise<ParentAccessActionState> {
+  const parsed = baseSchema.safeParse(input);
+
+  if (!parsed.success) {
+    return { ok: false, message: "Check the selected result access record.", fieldErrors: parsed.error.flatten().fieldErrors };
+  }
+
+  try {
+    const { profile, supabase, student, studentName, access } = await getAccessContext(parsed.data);
+    const currentUseCount = access?.use_count ?? 0;
+    const oldMaxUses = access ? access.max_uses : 10;
+
+    if (access) {
+      const { error } = await supabase
+        .from("code_term_access")
+        .update({ max_uses: null })
+        .eq("id", access.id)
+        .eq("school_id", profile.school_id);
+
+      if (error) throw error;
+    } else {
+      const { error } = await supabase.from("code_term_access").insert({
+        school_id: profile.school_id,
+        student_id: student.id,
+        result_code: student.permanent_code,
+        term: parsed.data.term as SchoolTerm,
+        academic_year: parsed.data.academicYear,
+        is_active: true,
+        max_uses: null,
+        use_count: 0,
+        created_by: profile.id,
+      });
+
+      if (error) throw error;
+    }
+
+    await supabase.from("audit_logs").insert({
+      school_id: profile.school_id,
+      actor_id: profile.id,
+      actor_role: profile.role,
+      action: "update",
+      table_name: "code_term_access",
+      record_id: access?.id ?? null,
+      details: {
+        event: "parent_access_unlimited_enabled",
+        student_id: student.id,
+        student_name: studentName,
+        term: parsed.data.term,
+        academic_year: parsed.data.academicYear,
+        old_max_uses: oldMaxUses,
+        new_max_uses: null,
+        current_use_count: currentUseCount,
+      },
+    });
+
+    revalidatePath("/dashboard/parent-access");
+
+    return { ok: true, message: "Parent access set to unlimited successfully." };
+  } catch (error) {
+    return { ok: false, message: error instanceof Error ? error.message : "Parent access could not be set to unlimited." };
   }
 }

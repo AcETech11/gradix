@@ -449,7 +449,7 @@ body {
 
 .score-ink-red,
 .performance-fail {
-  color: #b91c1c;
+  color: #b91c1c !important;
   background: transparent;
 }
 
@@ -457,13 +457,13 @@ body {
 .performance-good,
 .performance-credit,
 .performance-pass {
-  color: #111827;
+  color: #111827 !important;
   background: transparent;
 }
 
 .score-ink-green,
 .performance-excellent {
-  color: #15803d;
+  color: #15803d !important;
   background: transparent;
 }
 

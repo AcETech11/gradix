@@ -11,9 +11,10 @@ import type { PublicResultPayload } from "@/lib/parent-portal/parent-result-type
 type ResultLookupCardProps = {
   code: string;
   result: PublicResultPayload;
+  schoolSlug?: string | null;
 };
 
-export function ResultLookupCard({ code, result }: ResultLookupCardProps) {
+export function ResultLookupCard({ code, result, schoolSlug }: ResultLookupCardProps) {
   return (
     <div className="w-full space-y-5 py-6">
       <div className="print-hidden">
@@ -23,7 +24,7 @@ export function ResultLookupCard({ code, result }: ResultLookupCardProps) {
         <StudentResultHeader result={result} />
         <ResultVerificationBanner />
         <div className="grid gap-5 lg:grid-cols-[1fr_18rem]">
-          <TermSelector code={code} currentAcademicYear={result.result.academicYear} currentTerm={result.result.term} options={result.termOptions} />
+          <TermSelector code={code} currentAcademicYear={result.result.academicYear} currentTerm={result.result.term} options={result.termOptions} schoolSlug={schoolSlug} />
           <AccessCounter maxUses={result.access.maxUses} remaining={result.access.remaining} useCount={result.access.useCount} />
         </div>
         {result.school.reportSettings?.showPerformanceSummary !== false ? (

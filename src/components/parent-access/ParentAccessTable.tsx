@@ -4,9 +4,9 @@ import type { ReactNode } from "react";
 import { useMemo, useState, useTransition } from "react";
 import { flexRender, getCoreRowModel, useReactTable, type ColumnDef } from "@tanstack/react-table";
 import { format } from "date-fns";
-import { RotateCcw, SlidersHorizontal } from "lucide-react";
+import { Infinity, RotateCcw, SlidersHorizontal } from "lucide-react";
 
-import { increaseParentAccessLimitAction, resetParentAccessViewsAction } from "@/actions/parent-access/update-parent-access-limit-action";
+import { increaseParentAccessLimitAction, resetParentAccessViewsAction, setParentAccessUnlimitedAction } from "@/actions/parent-access/update-parent-access-limit-action";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ParentAccessStatusBadge } from "@/components/parent-access/ParentAccessStatusBadge";
@@ -73,11 +73,15 @@ export function ParentAccessTable({ canManage, records }: ParentAccessTableProps
                 variant="outline"
                 onClick={() => {
                   setSelectedLimit(row.original);
-                  setNewLimit(String(Math.min(row.original.maxViews + 5, 100)));
+                  setNewLimit(String(Math.min((row.original.maxViews ?? row.original.viewsUsed) + 5, 100)));
                 }}
               >
                 <SlidersHorizontal className="size-4" />
                 Increase
+              </Button>
+              <Button className="h-9 border-white/10 bg-white/5 text-slate-100 hover:bg-white/10" type="button" variant="outline" onClick={() => setUnlimited(row.original)}>
+                <Infinity className="size-4" />
+                Unlimited
               </Button>
             </div>
           ) : (
@@ -119,6 +123,20 @@ export function ParentAccessTable({ canManage, records }: ParentAccessTableProps
 
       setMessage(result.message);
       if (result.ok) setSelectedLimit(null);
+    });
+  }
+
+  function setUnlimited(record: ParentAccessRecord) {
+    if (!window.confirm(`Set unlimited parent result views for ${record.studentName}?`)) return;
+
+    startTransition(async () => {
+      const result = await setParentAccessUnlimitedAction({
+        studentId: record.studentId,
+        term: record.term,
+        academicYear: record.academicYear,
+      });
+
+      setMessage(result.message);
     });
   }
 
@@ -183,9 +201,13 @@ export function ParentAccessTable({ canManage, records }: ParentAccessTableProps
                   <RotateCcw className="size-4" />
                   Reset Views
                 </Button>
-                <Button className="border-white/10 bg-white/5 text-slate-100 hover:bg-white/10" type="button" variant="outline" onClick={() => { setSelectedLimit(record); setNewLimit(String(Math.min(record.maxViews + 5, 100))); }}>
+                <Button className="border-white/10 bg-white/5 text-slate-100 hover:bg-white/10" type="button" variant="outline" onClick={() => { setSelectedLimit(record); setNewLimit(String(Math.min((record.maxViews ?? record.viewsUsed) + 5, 100))); }}>
                   <SlidersHorizontal className="size-4" />
                   Increase Limit
+                </Button>
+                <Button className="border-white/10 bg-white/5 text-slate-100 hover:bg-white/10" type="button" variant="outline" onClick={() => setUnlimited(record)}>
+                  <Infinity className="size-4" />
+                  Set Unlimited
                 </Button>
               </div>
             ) : null}
@@ -209,7 +231,7 @@ export function ParentAccessTable({ canManage, records }: ParentAccessTableProps
         <Dialog title="Increase parent access limit" onClose={() => setSelectedLimit(null)}>
           <div className="space-y-3 text-sm text-slate-300">
             <p>Current views used: <strong className="text-slate-50">{selectedLimit.viewsUsed}</strong></p>
-            <p>Current limit: <strong className="text-slate-50">{selectedLimit.maxViews}</strong></p>
+            <p>Current limit: <strong className="text-slate-50">{selectedLimit.maxViews ?? "Unlimited"}</strong></p>
             <label className="block space-y-2">
               <span className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">New Limit</span>
               <Input className="border-white/10 bg-slate-950/60 text-slate-100" max={100} min={Math.max(selectedLimit.viewsUsed, 1)} type="number" value={newLimit} onChange={(event) => setNewLimit(event.target.value)} />

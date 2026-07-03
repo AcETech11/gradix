@@ -32,7 +32,7 @@ export function ResultSummaryCards({
         <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm" key={card.label}>
           <card.icon className="size-5 text-emerald-700" />
           <p className="mt-3 text-sm text-slate-500">{card.label}</p>
-          <p className={cn("mt-1 text-xl font-semibold text-slate-950", card.label === "Average" && getScoreInkClassName(summary.averageScore))}>{card.value}</p>
+          <p className={cn("mt-1 text-xl font-semibold text-slate-950", (card.label === "Average" || card.label === "Overall grade") && getScoreInkClassName(summary.averageScore))}>{card.value}</p>
         </div>
       ))}
     </section>

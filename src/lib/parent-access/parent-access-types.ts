@@ -24,8 +24,8 @@ export type ParentAccessRecord = {
   term: SchoolTerm;
   academicYear: string;
   viewsUsed: number;
-  maxViews: number;
-  viewsRemaining: number;
+  maxViews: number | null;
+  viewsRemaining: number | null;
   lastCheckedAt: string | null;
   status: Exclude<ParentAccessStatus, "all">;
   accessId: string | null;

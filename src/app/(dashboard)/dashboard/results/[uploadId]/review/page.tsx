@@ -51,10 +51,15 @@ export default async function ResultReviewPage({ params }: ResultReviewPageProps
       <ClassTermReportSettingsPanel upload={upload} />
 
       <ResultReviewTable
+        academicYear={upload.academicYear}
         canEdit={upload.canEdit}
         canEditReportDetails={upload.canEditReportDetails}
+        className={upload.className}
         rows={rows}
+        schoolName={upload.schoolName}
         schoolOpenDays={upload.schoolOpenDays}
+        schoolSlug={upload.schoolSlug}
+        term={upload.term}
         uploadId={upload.id}
       />
     </div>

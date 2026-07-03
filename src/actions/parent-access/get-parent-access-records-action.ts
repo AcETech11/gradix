@@ -132,8 +132,8 @@ export async function getParentAccessRecordsAction(input?: unknown): Promise<Par
     .map<ParentAccessRecord>((student) => {
       const access = accessByStudentId.get(student.id);
       const viewsUsed = access?.use_count ?? 0;
-      const maxViews = access?.max_uses ?? 10;
-      const viewsRemaining = Math.max(maxViews - viewsUsed, 0);
+      const maxViews = access ? access.max_uses : 10;
+      const viewsRemaining = maxViews === null ? null : Math.max(maxViews - viewsUsed, 0);
 
       return {
         studentId: student.id,

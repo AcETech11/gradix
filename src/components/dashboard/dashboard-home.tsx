@@ -7,11 +7,13 @@ import { getAuditLogsAction } from "@/actions/audit/get-audit-logs-action";
 import { Button } from "@/components/ui/button";
 import { formatNumber, formatScore } from "@/lib/analytics/analytics-formatters";
 import { getCurrentSchool, getCurrentUserProfile } from "@/lib/auth/session";
+import { buildSchoolPortalLink } from "@/lib/parent-portal/public-result-links";
 import type { AuthRole } from "@/types/auth";
 
 import { ActivityTimeline } from "./activity-timeline";
 import type { DashboardStat, SetupStep, TimelineItem } from "./dashboard-types";
 import { PageHeader } from "./page-header";
+import { ParentPortalCard } from "./ParentPortalCard";
 import { QuickActions } from "./quick-actions";
 import { SetupProgress } from "./setup-progress";
 import { StatCard } from "./stat-card";
@@ -122,6 +124,8 @@ export async function DashboardHome() {
   const stats = analyticsOverview ? mapAnalyticsStats(analyticsOverview) : [];
   const setupSteps = buildSetupSteps(analyticsOverview, school);
   const setupProgress = calculateSetupProgress(setupSteps);
+  const schoolSlug = school?.slug && /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(school.slug) ? school.slug : null;
+  const portalLink = schoolSlug ? buildSchoolPortalLink({ schoolSlug }) : null;
 
   return (
     <div className="space-y-6">
@@ -149,6 +153,16 @@ export async function DashboardHome() {
       />
 
       {profile ? <QuickActions role={profile.role as AuthRole} /> : null}
+
+      {school ? (
+        <ParentPortalCard
+          canManageSettings={profile?.role === "admin"}
+          logoUrl={school.logo_url}
+          portalLink={portalLink}
+          schoolName={school.name}
+          schoolSlug={schoolSlug}
+        />
+      ) : null}
 
       {stats.length > 0 ? (
         <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5" aria-label="Dashboard summary">

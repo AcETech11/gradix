@@ -19,10 +19,12 @@ export async function getPublicResultAction({
   code,
   term,
   academicYear,
+  schoolSlug,
 }: {
   code: string;
   term?: string;
   academicYear?: string;
+  schoolSlug?: string | null;
 }): Promise<PublicResultResponse> {
   const normalizedCode = normalizeResultCode(code);
 
@@ -36,11 +38,18 @@ export async function getPublicResultAction({
 
   try {
     const supabase = await createClient();
-    const { data, error } = await supabase.rpc("get_public_student_result", {
-      input_code: normalizedCode,
-      requested_term: isSchoolTerm(term) ? term : null,
-      requested_academic_year: academicYear || null,
-    });
+    const { data, error } = schoolSlug
+      ? await supabase.rpc("get_public_student_result_for_school", {
+          input_code: normalizedCode,
+          input_school_slug: schoolSlug,
+          requested_term: isSchoolTerm(term) ? term : null,
+          requested_academic_year: academicYear || null,
+        })
+      : await supabase.rpc("get_public_student_result", {
+          input_code: normalizedCode,
+          requested_term: isSchoolTerm(term) ? term : null,
+          requested_academic_year: academicYear || null,
+        });
 
     if (error || !data || typeof data !== "object") {
       return publicError;

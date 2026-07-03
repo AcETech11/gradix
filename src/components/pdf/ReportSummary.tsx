@@ -21,7 +21,7 @@ export function ReportSummary({ report }: { report: PrintableReportData }) {
       <h2>Performance Summary</h2>
       <div className="report-summary-grid">
         {items.map(([label, value]) => {
-          const valueClassName = label === "Average Score" ? getScoreInkClassName(summary.averageScore) : undefined;
+          const valueClassName = label === "Average Score" || label === "Overall Grade" ? getScoreInkClassName(summary.averageScore) : undefined;
 
           return (
           <div className="report-summary-item" key={label}>

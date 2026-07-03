@@ -83,6 +83,8 @@ export type ResultReviewRow = {
   attendanceAbsent: number | null;
   affectiveDomain: Record<string, number | undefined>;
   psychomotorDomain: Record<string, number | undefined>;
+  parentAccessUseCount: number | null;
+  parentAccessMaxUses: number | null;
 };
 
 export type ResultUploadDetail = {
@@ -107,6 +109,9 @@ export type ResultUploadDetail = {
   schoolOpenDays: number | null;
   termEndsOn: string | null;
   nextTermBeginsOn: string | null;
+  schoolName: string;
+  schoolSlug: string | null;
+  schoolLogoUrl: string | null;
 };
 
 export type ResultActionState<TData = unknown> =

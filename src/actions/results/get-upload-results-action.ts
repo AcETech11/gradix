@@ -39,7 +39,7 @@ export async function getUploadResultsAction(uploadId: string): Promise<{ upload
   const studentIds = Array.from(new Set((results ?? []).map((result) => result.student_id)));
   const subjectIds = Array.from(new Set((results ?? []).map((result) => result.subject_id)));
   const userIds = Array.from(new Set([upload.uploaded_by].filter((id): id is string => Boolean(id))));
-  const [studentsResult, subjectsResult, usersResult, reportRowsResult, classTermResult] = await Promise.all([
+  const [studentsResult, subjectsResult, usersResult, reportRowsResult, classTermResult, accessResult, schoolResult] = await Promise.all([
     studentIds.length > 0
       ? supabase.from("students").select("id, permanent_code, admission_number, first_name, middle_name, last_name").eq("school_id", profile.school_id).in("id", studentIds)
       : Promise.resolve({ data: [], error: null }),
@@ -68,10 +68,29 @@ export async function getUploadResultsAction(uploadId: string): Promise<{ upload
       .eq("term", upload.term)
       .eq("academic_year", upload.academic_year)
       .maybeSingle(),
+    studentIds.length > 0
+      ? supabase
+          .from("code_term_access")
+          .select("student_id, use_count, max_uses")
+          .eq("school_id", profile.school_id)
+          .eq("term", upload.term)
+          .eq("academic_year", upload.academic_year)
+          .in("student_id", studentIds)
+      : Promise.resolve({ data: [], error: null }),
+    supabase.from("schools").select("name, slug, logo_url").eq("id", profile.school_id).maybeSingle(),
   ]);
 
-  if (studentsResult.error || subjectsResult.error || usersResult.error || reportRowsResult.error || classTermResult.error) {
-    throw new Error(studentsResult.error?.message ?? subjectsResult.error?.message ?? usersResult.error?.message ?? reportRowsResult.error?.message ?? classTermResult.error?.message ?? "Result rows could not be loaded.");
+  if (studentsResult.error || subjectsResult.error || usersResult.error || reportRowsResult.error || classTermResult.error || accessResult.error || schoolResult.error) {
+    throw new Error(
+      studentsResult.error?.message ??
+        subjectsResult.error?.message ??
+        usersResult.error?.message ??
+        reportRowsResult.error?.message ??
+        classTermResult.error?.message ??
+        accessResult.error?.message ??
+        schoolResult.error?.message ??
+        "Result rows could not be loaded.",
+    );
   }
 
   const studentsById = new Map(
@@ -87,6 +106,7 @@ export async function getUploadResultsAction(uploadId: string): Promise<{ upload
   const subjectsById = new Map((subjectsResult.data ?? []).map((subject) => [subject.id, subject.name]));
   const usersById = new Map((usersResult.data ?? []).map((user) => [user.id, user.full_name]));
   const reportRowsByStudentId = new Map((reportRowsResult.data ?? []).map((row) => [row.student_id, row]));
+  const accessByStudentId = new Map((accessResult.data ?? []).map((row) => [row.student_id, row]));
   const canEdit = canEditResultScores(profile);
   const canPublish = canPublishResultUpload(profile);
   const publishedDate = upload.published_at;
@@ -114,10 +134,14 @@ export async function getUploadResultsAction(uploadId: string): Promise<{ upload
       schoolOpenDays: classTermResult.data?.school_open_days ?? null,
       termEndsOn: classTermResult.data?.term_ends_on ?? null,
       nextTermBeginsOn: classTermResult.data?.next_term_begins_on ?? null,
+      schoolName: schoolResult.data?.name ?? "School",
+      schoolSlug: schoolResult.data?.slug ?? null,
+      schoolLogoUrl: schoolResult.data?.logo_url ?? null,
     },
     rows: (results ?? []).map((result) => {
       const student = studentsById.get(result.student_id);
       const reportRow = reportRowsByStudentId.get(result.student_id);
+      const access = accessByStudentId.get(result.student_id);
 
       return {
         id: result.id,
@@ -142,6 +166,8 @@ export async function getUploadResultsAction(uploadId: string): Promise<{ upload
         attendanceAbsent: reportRow?.attendance_absent ?? null,
         affectiveDomain: sanitizeRatingMap(reportRow?.affective_domain),
         psychomotorDomain: sanitizeRatingMap(reportRow?.psychomotor_domain),
+        parentAccessUseCount: access?.use_count ?? null,
+        parentAccessMaxUses: access?.max_uses ?? null,
       };
     }),
   };

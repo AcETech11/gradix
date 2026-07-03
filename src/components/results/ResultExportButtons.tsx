@@ -1,9 +1,9 @@
 "use client";
 
 import { useTransition } from "react";
-import { Download, Table2 } from "lucide-react";
+import { Download, Share2, Table2 } from "lucide-react";
 
-import { exportBroadsheetAction, exportResultsAction } from "@/actions/results/export-results-action";
+import { exportBroadsheetAction, exportParentResultSharingSheetAction, exportResultsAction } from "@/actions/results/export-results-action";
 import { Button } from "@/components/ui/button";
 
 function downloadBase64File(fileName: string, base64: string) {
@@ -32,6 +32,16 @@ export function ResultExportButtons({ uploadId }: { uploadId: string }) {
     });
   }
 
+  function exportParentSharingSheet() {
+    if (!window.confirm("This sheet contains student result codes and private result links. Share it only with authorised school staff.")) return;
+
+    startTransition(async () => {
+      const result = await exportParentResultSharingSheetAction(uploadId);
+      if (result.ok && result.data) downloadBase64File(result.data.fileName, result.data.base64);
+      else window.alert(result.message);
+    });
+  }
+
   return (
     <>
       <Button disabled={isPending} onClick={exportResults} size="sm" type="button" variant="outline">
@@ -41,6 +51,10 @@ export function ResultExportButtons({ uploadId }: { uploadId: string }) {
       <Button disabled={isPending} onClick={exportBroadsheet} size="sm" type="button" variant="outline">
         <Table2 />
         Broadsheet
+      </Button>
+      <Button disabled={isPending} onClick={exportParentSharingSheet} size="sm" title="Download Parent Result Sharing Sheet" type="button" variant="outline">
+        <Share2 />
+        Parent Links
       </Button>
     </>
   );
