@@ -2,8 +2,9 @@
 
 import { redirect } from "next/navigation";
 
+import { buildAppUrl } from "@/lib/auth/app-url";
 import { getAuthErrorMessage } from "@/lib/auth/errors";
-import { getRequestIp, getRequestOrigin } from "@/lib/registration/utils";
+import { getRequestIp } from "@/lib/registration/utils";
 import { registrationSchema, resendVerificationSchema } from "@/lib/registration/schema";
 import { createClient } from "@/lib/supabase/server";
 import type { RegistrationActionState, RegistrationRedirect } from "@/types/registration";
@@ -37,8 +38,8 @@ export async function registerSchoolOwnerAction(input: unknown): Promise<Registr
   }
 
   const supabase = await createClient();
-  const origin = await getRequestOrigin();
   const ip = await getRequestIp();
+  const emailRedirectTo = await buildAppUrl("/auth/callback?next=/onboarding");
 
   try {
     await supabase.rpc("check_registration_rate_limit", {
@@ -61,7 +62,7 @@ export async function registerSchoolOwnerAction(input: unknown): Promise<Registr
         phone: parsed.data.phoneNumber,
         registration_type: "school_owner",
       },
-      emailRedirectTo: `${origin}/verify-email?email=${encodeURIComponent(parsed.data.schoolEmail)}`,
+      emailRedirectTo,
     },
   });
 
@@ -89,8 +90,8 @@ export async function resendVerificationAction(input: unknown): Promise<Registra
   }
 
   const supabase = await createClient();
-  const origin = await getRequestOrigin();
   const ip = await getRequestIp();
+  const emailRedirectTo = await buildAppUrl("/auth/callback?next=/onboarding");
 
   try {
     await supabase.rpc("check_registration_rate_limit", {
@@ -108,7 +109,7 @@ export async function resendVerificationAction(input: unknown): Promise<Registra
     type: "signup",
     email: parsed.data.schoolEmail,
     options: {
-      emailRedirectTo: `${origin}/verify-email?email=${encodeURIComponent(parsed.data.schoolEmail)}`,
+      emailRedirectTo,
     },
   });
 

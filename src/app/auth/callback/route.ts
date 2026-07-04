@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 
 import { getSafeRedirectPath } from "@/lib/auth/redirects";
+import { finalizeVerifiedRegistration } from "@/lib/registration/service";
 import { createClient } from "@/lib/supabase/server";
 
 export async function GET(request: NextRequest) {
@@ -13,6 +14,18 @@ export async function GET(request: NextRequest) {
     const { error } = await supabase.auth.exchangeCodeForSession(code);
 
     if (!error) {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (user?.user_metadata?.registration_type === "school_owner") {
+        try {
+          await finalizeVerifiedRegistration();
+        } catch {
+          return NextResponse.redirect(new URL("/login?error=account", requestUrl.origin));
+        }
+      }
+
       return NextResponse.redirect(new URL(next ?? "/reset-password", requestUrl.origin));
     }
   }

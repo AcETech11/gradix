@@ -1,9 +1,11 @@
 "use client";
 
-import Link from "next/link";
 import { motion } from "motion/react";
 import { CheckCircle2, School } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useState, useTransition } from "react";
 
+import { completeOnboardingAction } from "@/actions/onboarding";
 import { Button } from "@/components/ui/button";
 import type { OnboardingClass, OnboardingSubject } from "@/types/onboarding";
 
@@ -15,6 +17,25 @@ type CompletionStepProps = {
 };
 
 export function CompletionStep({ schoolName, schoolCode, classes, subjects }: CompletionStepProps) {
+  const router = useRouter();
+  const [pending, startTransition] = useTransition();
+  const [error, setError] = useState("");
+
+  function goToDashboard() {
+    setError("");
+    startTransition(async () => {
+      const result = await completeOnboardingAction();
+
+      if (!result.ok || !result.data?.redirectTo) {
+        setError(result.message || "We could not finish onboarding. Try again.");
+        return;
+      }
+
+      router.refresh();
+      router.replace(result.data.redirectTo);
+    });
+  }
+
   return (
     <div className="space-y-7 text-center">
       <motion.div
@@ -36,8 +57,9 @@ export function CompletionStep({ schoolName, schoolCode, classes, subjects }: Co
         <SummaryCard label="Classes" value={String(classes.length)} detail="Active class rows" />
         <SummaryCard label="Subjects" value={String(subjects.length)} detail="Assigned subjects" />
       </div>
-      <Button asChild className="h-12 rounded-xl bg-orange-600 px-6 text-white hover:bg-orange-700">
-        <Link href="/dashboard">Go to Dashboard</Link>
+      {error ? <p className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p> : null}
+      <Button className="h-12 rounded-xl bg-orange-600 px-6 text-white hover:bg-orange-700" disabled={pending} onClick={goToDashboard} type="button">
+        {pending ? "Finishing..." : "Go to Dashboard"}
       </Button>
     </div>
   );

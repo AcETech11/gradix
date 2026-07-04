@@ -24,6 +24,47 @@ function validationErrorState<TData = unknown>(
   };
 }
 
+export async function completeOnboardingAction(): Promise<OnboardingActionState<{ redirectTo: string }>> {
+  try {
+    const profile = await requireRole(["admin", "headmaster"]);
+    const supabase = await createClient();
+    const { data: school, error: schoolError } = await supabase
+      .from("schools")
+      .select("id, metadata")
+      .eq("id", profile.school_id)
+      .maybeSingle();
+
+    if (schoolError || !school) {
+      return saveErrorState(schoolError ?? { message: "Your school profile was not found." });
+    }
+
+    const metadata = mergeMetadata(school.metadata, {
+      onboarding_completed: true,
+      onboarding_completed_at: new Date().toISOString(),
+    });
+    const { error } = await supabase
+      .from("schools")
+      .update({ metadata, updated_at: new Date().toISOString() })
+      .eq("id", school.id)
+      .eq("id", profile.school_id);
+
+    if (error) {
+      return saveErrorState(error);
+    }
+
+    revalidatePath("/onboarding");
+    revalidatePath("/dashboard");
+
+    return {
+      ok: true,
+      message: "Onboarding completed.",
+      data: { redirectTo: "/dashboard" },
+    };
+  } catch (error) {
+    return saveErrorState(error instanceof Error ? error : null);
+  }
+}
+
 function saveErrorState<TData = unknown>(error: { message: string } | null): OnboardingActionState<TData> {
   return {
     ok: false,

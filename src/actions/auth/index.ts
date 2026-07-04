@@ -1,8 +1,9 @@
 "use server";
 
-import { cookies, headers } from "next/headers";
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
+import { buildAppUrl } from "@/lib/auth/app-url";
 import { getAuthErrorMessage } from "@/lib/auth/errors";
 import { isDashboardRole } from "@/lib/auth/permissions";
 import { getSafeRedirectPath } from "@/lib/auth/redirects";
@@ -19,29 +20,6 @@ function validationErrorState<TData = unknown>(
     message,
     fieldErrors,
   };
-}
-
-async function getRequestOrigin() {
-  const headerStore = await headers();
-  const origin = headerStore.get("origin");
-
-  if (origin) {
-    return origin;
-  }
-
-  const host = headerStore.get("host");
-  const protocol = headerStore.get("x-forwarded-proto") ?? "http";
-
-  return host ? `${protocol}://${host}` : "http://localhost:3000";
-}
-
-function isOnboardingComplete(metadata: unknown) {
-  return Boolean(
-    metadata &&
-      typeof metadata === "object" &&
-      !Array.isArray(metadata) &&
-      (metadata as Record<string, unknown>).onboarding_completed === true,
-  );
 }
 
 function logAuthDebug(message: string, details: Record<string, unknown>) {
@@ -197,7 +175,7 @@ export async function loginAction(input: unknown): Promise<AuthActionState<Login
     }
 
     const requestedRedirect = getSafeRedirectPath(parsed.data.redirectTo);
-    const redirectTo = isOnboardingComplete(school.metadata) ? (requestedRedirect ?? "/dashboard") : "/onboarding";
+    const redirectTo = requestedRedirect ?? "/dashboard";
 
     logAuthDebug("login redirect", {
       authUserId: user.id,
@@ -230,9 +208,8 @@ export async function forgotPasswordAction(input: unknown): Promise<AuthActionSt
   }
 
   const supabase = await createClient();
-  const origin = await getRequestOrigin();
   const { error } = await supabase.auth.resetPasswordForEmail(parsed.data.email, {
-    redirectTo: `${origin}/auth/callback?next=/reset-password`,
+    redirectTo: await buildAppUrl("/auth/callback?next=/reset-password"),
   });
 
   if (error) {

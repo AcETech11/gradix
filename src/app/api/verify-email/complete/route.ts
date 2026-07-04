@@ -33,15 +33,12 @@ export async function GET(request: NextRequest) {
   const result = await finalizeVerifiedRegistration();
   const { data: school } = await supabase
     .from("schools")
-    .select("metadata")
+    .select("id")
     .eq("id", result.school_id)
     .maybeSingle();
 
-  const metadata = school?.metadata as Record<string, unknown> | null | undefined;
-  const onboardingCompleted = Boolean(metadata && metadata.onboarding_completed === true);
-
   return NextResponse.json({
     ok: true,
-    redirectTo: onboardingCompleted ? "/dashboard" : "/onboarding",
+    redirectTo: school ? "/onboarding" : "/login?error=school_missing",
   });
 }

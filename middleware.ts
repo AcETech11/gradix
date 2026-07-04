@@ -5,15 +5,6 @@ import { canAccessDashboardPath, getRoleHomePath, isDashboardRole } from "@/lib/
 import { buildLoginUrl, getSafeRedirectPath, isAuthPath } from "@/lib/auth/redirects";
 import { createMiddlewareClient } from "@/lib/supabase/middleware";
 
-function isOnboardingComplete(metadata: unknown) {
-  return Boolean(
-    metadata &&
-      typeof metadata === "object" &&
-      !Array.isArray(metadata) &&
-      (metadata as Record<string, unknown>).onboarding_completed === true,
-  );
-}
-
 function logAuthDebug(message: string, details: Record<string, unknown>) {
   if (process.env.NODE_ENV !== "production") {
     console.log(`[gradix-auth] ${message}`, details);
@@ -99,10 +90,9 @@ export async function middleware(request: NextRequest) {
   }
 
   const roleHome = getRoleHomePath(profile.role);
-  let onboardingPath: string | null = null;
   const { data: school, error: schoolError } = await supabase
     .from("schools")
-    .select("id, metadata")
+    .select("id")
     .eq("id", profile.school_id)
     .maybeSingle();
 
@@ -122,14 +112,8 @@ export async function middleware(request: NextRequest) {
     return redirectToLogin(request.nextUrl.origin, "school_missing");
   }
 
-  if (profile.role === "admin" || profile.role === "headmaster") {
-    if (!isOnboardingComplete(school?.metadata)) {
-      onboardingPath = "/onboarding";
-    }
-  }
-
   if (isRegisterPath) {
-    const redirectTarget = onboardingPath ?? roleHome;
+    const redirectTarget = roleHome;
     logAuthDebug("middleware redirect", { authUserId: user.id, redirectTarget });
 
     return NextResponse.redirect(new URL(redirectTarget, request.nextUrl.origin));
@@ -141,7 +125,7 @@ export async function middleware(request: NextRequest) {
 
   if (isAuthRoute && pathname !== "/reset-password") {
     const nextPath = getSafeRedirectPath(request.nextUrl.searchParams.get("next"));
-    const redirectTarget = onboardingPath ?? nextPath ?? roleHome;
+    const redirectTarget = nextPath ?? roleHome;
 
     logAuthDebug("middleware redirect", { authUserId: user.id, redirectTarget });
 
@@ -150,12 +134,6 @@ export async function middleware(request: NextRequest) {
 
   if (isOnboardingPath && !["admin", "headmaster"].includes(profile.role)) {
     return NextResponse.redirect(new URL(roleHome, request.nextUrl.origin));
-  }
-
-  if (isDashboardPath && onboardingPath) {
-    logAuthDebug("middleware redirect", { authUserId: user.id, redirectTarget: onboardingPath });
-
-    return NextResponse.redirect(new URL(onboardingPath, request.nextUrl.origin));
   }
 
   if (isDashboardPath && !canAccessDashboardPath(profile.role, pathname)) {

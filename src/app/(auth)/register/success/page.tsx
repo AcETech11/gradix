@@ -31,13 +31,10 @@ export default async function RegisterSuccessPage({ searchParams }: RegisterSucc
 
   if (profile) {
     const supabase = await createClient();
-    const { data: school } = await supabase.from("schools").select("school_code, metadata").eq("id", profile.school_id).maybeSingle();
+    const { data: school } = await supabase.from("schools").select("school_code").eq("id", profile.school_id).maybeSingle();
     schoolCode = school?.school_code ?? schoolCode;
 
-    const metadata = school?.metadata as Record<string, unknown> | null | undefined;
-    const onboardingCompleted = Boolean(metadata && metadata.onboarding_completed === true);
-
-    redirect(onboardingCompleted ? "/dashboard" : "/onboarding");
+    redirect(school ? "/dashboard" : "/onboarding");
   }
 
   return (
