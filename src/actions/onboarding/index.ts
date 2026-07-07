@@ -334,7 +334,6 @@ export async function saveSubjectsAssignmentsAction(
   }
 
   const supabase = await createClient();
-  const incomingIds = parsed.data.subjects.map((row) => row.id).filter(Boolean);
   const requestedClassIds = Array.from(new Set(parsed.data.subjects.flatMap((row) => row.classIds)));
   const requestedCodes = new Map<string, string>();
 
@@ -350,7 +349,7 @@ export async function saveSubjectsAssignmentsAction(
   }
   const { data: existingSubjects, error: existingError } = await supabase
     .from("subjects")
-    .select("id")
+    .select("id, name, code")
     .eq("school_id", profile.school_id);
 
   if (existingError) {
@@ -374,7 +373,22 @@ export async function saveSubjectsAssignmentsAction(
     }
   }
 
-  const inactiveIds = existingSubjects.map((row) => row.id).filter((id) => !incomingIds.includes(id));
+  const existingSubjectsByName = new Map(existingSubjects.map((row) => [row.name.trim().toLowerCase(), row]));
+  const existingSubjectsByCode = new Map(existingSubjects.map((row) => [row.code.trim().toUpperCase(), row]));
+  const incomingSubjectIds = new Set<string>();
+
+  parsed.data.subjects.forEach((row) => {
+    if (row.id) incomingSubjectIds.add(row.id);
+
+    const code = (row.code?.trim() || buildSubjectCode(row.name)).toUpperCase();
+    const existingByName = existingSubjectsByName.get(row.name.trim().toLowerCase());
+    const existingByCode = existingSubjectsByCode.get(code);
+    const existing = existingByName ?? existingByCode;
+
+    if (existing) incomingSubjectIds.add(existing.id);
+  });
+
+  const inactiveIds = existingSubjects.map((row) => row.id).filter((id) => !incomingSubjectIds.has(id));
 
   if (inactiveIds.length > 0) {
     const { error } = await supabase
@@ -388,16 +402,40 @@ export async function saveSubjectsAssignmentsAction(
     }
   }
 
+  const reusedSubjectNames = new Set<string>();
+
   for (const row of parsed.data.subjects) {
+    const subjectCode = (row.code?.trim() || buildSubjectCode(row.name)).toUpperCase();
+    const existingByName = existingSubjectsByName.get(row.name.trim().toLowerCase());
+    const existingByCode = existingSubjectsByCode.get(subjectCode);
+
+    if (existingByCode && !existingByName && existingByCode.name.trim().toLowerCase() !== row.name.trim().toLowerCase()) {
+      return validationErrorState(
+        `Subject code ${subjectCode} already belongs to "${existingByCode.name}". Use that subject or choose a different code.`,
+      );
+    }
+
+    const existingSubject = row.id ? null : existingByName ?? existingByCode;
+    if (existingSubject) {
+      reusedSubjectNames.add(row.name.trim());
+    }
+
     const subjectPayload = {
       school_id: profile.school_id,
       name: row.name.trim(),
-      code: (row.code?.trim() || buildSubjectCode(row.name)).toUpperCase(),
+      code: subjectCode,
       is_active: true,
     };
 
-    const subjectResponse = row.id
-      ? await supabase.from("subjects").update(subjectPayload).eq("id", row.id).eq("school_id", profile.school_id).select("id").single()
+    const targetSubjectId = row.id ?? existingSubject?.id;
+    const subjectResponse = targetSubjectId
+      ? await supabase
+          .from("subjects")
+          .update(subjectPayload)
+          .eq("id", targetSubjectId)
+          .eq("school_id", profile.school_id)
+          .select("id")
+          .single()
       : await supabase.from("subjects").insert(subjectPayload).select("id").single();
 
     if (subjectResponse.error || !subjectResponse.data) {
@@ -467,7 +505,10 @@ export async function saveSubjectsAssignmentsAction(
 
   return {
     ok: true,
-    message: "Subjects and class assignments saved.",
+    message:
+      reusedSubjectNames.size > 0
+        ? `${Array.from(reusedSubjectNames).join(", ")} already ${reusedSubjectNames.size === 1 ? "exists" : "exist"} for this school and ${reusedSubjectNames.size === 1 ? "has" : "have"} been assigned to the selected classes.`
+        : "Subjects and class assignments saved.",
     data: {
       subjects: savedSubjects.map((subject) => ({
         id: subject.id,
