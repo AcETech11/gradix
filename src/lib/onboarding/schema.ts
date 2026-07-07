@@ -9,7 +9,7 @@ export const schoolInformationSchema = z.object({
     .trim()
     .min(2, "School code is required.")
     .max(40, "Use 40 characters or fewer.")
-    .regex(/^[a-zA-Z0-9-]+$/, "Use letters, numbers, and hyphens only."),
+    .regex(/^[A-Z0-9-]+$/, "Use uppercase letters, numbers, and hyphens only."),
   schoolType: z.string().trim().min(2, "School type is required."),
   schoolAddress: z.string().trim().min(5, "School address is required."),
   schoolPhone: z.string().trim().min(7, "School phone is required."),

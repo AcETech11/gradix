@@ -9,7 +9,7 @@ import {
   schoolInformationSchema,
   subjectsAssignmentsSchema,
 } from "@/lib/onboarding/schema";
-import { buildSubjectCode, getCurrentAcademicYear, mergeMetadata, slugifySchoolCode } from "@/lib/onboarding/utils";
+import { buildSubjectCode, getCurrentAcademicYear, mergeMetadata, slugifySchoolName } from "@/lib/onboarding/utils";
 import { createClient } from "@/lib/supabase/server";
 import type { OnboardingActionState } from "@/types/onboarding";
 
@@ -66,9 +66,25 @@ export async function completeOnboardingAction(): Promise<OnboardingActionState<
 }
 
 function saveErrorState<TData = unknown>(error: { message: string } | null): OnboardingActionState<TData> {
+  const message = error?.message ?? "";
+
+  if (message.toLowerCase().includes("subjects_school") || message.toLowerCase().includes("subjects_school_id_code_key")) {
+    return {
+      ok: false,
+      message: "A subject with that name or code already exists in this school. Use a unique subject name and code.",
+    };
+  }
+
+  if (message.toLowerCase().includes("schools_school_code_key")) {
+    return {
+      ok: false,
+      message: "That school code is already used by another school.",
+    };
+  }
+
   return {
     ok: false,
-    message: error?.message ?? "We could not save this onboarding step. Try again.",
+    message: message || "We could not save this onboarding step. Try again.",
   };
 }
 
@@ -85,6 +101,8 @@ export async function saveSchoolInformationAction(input: unknown): Promise<Onboa
   }
 
   const supabase = await createClient();
+  const nextSchoolCode = parsed.data.schoolCode.trim().toUpperCase();
+  const nextSlug = slugifySchoolName(parsed.data.schoolName);
   const { data: school, error: readError } = await supabase
     .from("schools")
     .select("metadata")
@@ -95,17 +113,33 @@ export async function saveSchoolInformationAction(input: unknown): Promise<Onboa
     return saveErrorState(readError);
   }
 
+  const { data: conflictingSchool, error: conflictError } = await supabase
+    .from("schools")
+    .select("id")
+    .or(`school_code.eq.${nextSchoolCode},slug.eq.${nextSlug}`)
+    .neq("id", profile.school_id)
+    .maybeSingle();
+
+  if (conflictError) {
+    return saveErrorState(conflictError);
+  }
+
+  if (conflictingSchool) {
+    return validationErrorState("That school code or slug is already used by another school.");
+  }
+
   const { error } = await supabase
     .from("schools")
     .update({
       name: parsed.data.schoolName,
-      slug: slugifySchoolCode(parsed.data.schoolCode),
+      slug: nextSlug,
+      school_code: nextSchoolCode,
       email: parsed.data.schoolEmail,
       phone: parsed.data.schoolPhone,
       address_line_1: parsed.data.schoolAddress,
       motto: parsed.data.schoolMotto || null,
       metadata: mergeMetadata(school.metadata, {
-        school_code: parsed.data.schoolCode.trim().toUpperCase(),
+        school_code: nextSchoolCode,
         school_type: parsed.data.schoolType,
         principal_name: parsed.data.principalName,
         onboarding_school_information_complete: true,
@@ -302,6 +336,18 @@ export async function saveSubjectsAssignmentsAction(
   const supabase = await createClient();
   const incomingIds = parsed.data.subjects.map((row) => row.id).filter(Boolean);
   const requestedClassIds = Array.from(new Set(parsed.data.subjects.flatMap((row) => row.classIds)));
+  const requestedCodes = new Map<string, string>();
+
+  for (const row of parsed.data.subjects) {
+    const code = (row.code?.trim() || buildSubjectCode(row.name)).toUpperCase();
+    const existingName = requestedCodes.get(code);
+
+    if (existingName && existingName.toLowerCase() !== row.name.trim().toLowerCase()) {
+      return validationErrorState(`Subjects "${existingName}" and "${row.name}" both use code ${code}. Give one subject a different code.`);
+    }
+
+    requestedCodes.set(code, row.name.trim());
+  }
   const { data: existingSubjects, error: existingError } = await supabase
     .from("subjects")
     .select("id")

@@ -9,6 +9,10 @@ export function slugifySchoolCode(value: string) {
     .replace(/-{2,}/g, "-");
 }
 
+export function slugifySchoolName(value: string) {
+  return slugifySchoolCode(value.replace(/\b(schools?|college|academy)\b\s*$/i, ""));
+}
+
 export function buildSubjectCode(name: string) {
   const compact = name
     .trim()
