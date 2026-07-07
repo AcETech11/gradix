@@ -55,7 +55,7 @@ export function TemplatePreviewCard({ selectedClass }: TemplatePreviewCardProps)
       <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
         <p className="text-sm font-medium text-slate-200">Template columns</p>
         <p className="mt-2 text-sm leading-6 text-slate-400">
-          Student Code, Student Name, Admission Number, Class, then CA (0-40), Exam (0-60), and Remark for each assigned subject.
+          Student Code, Student Name, Class, then CA (0-40), Exam (0-60), and Remark for each assigned subject.
         </p>
       </div>
 

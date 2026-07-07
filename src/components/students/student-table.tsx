@@ -29,7 +29,6 @@ export function StudentTable({ students, canManage }: StudentTableProps) {
               <th className="px-4 py-3">Student Code</th>
               <th className="px-4 py-3">Name</th>
               <th className="px-4 py-3">Class</th>
-              <th className="px-4 py-3">Parent</th>
               <th className="px-4 py-3">Status</th>
               <th className="px-4 py-3 text-right">Actions</th>
             </tr>
@@ -55,19 +54,13 @@ export function StudentTable({ students, canManage }: StudentTableProps) {
                       <Link className="font-medium text-slate-50 hover:text-orange-200" href={`/dashboard/students/${student.id}`}>
                         {fullName}
                       </Link>
-                      <p className="text-xs text-slate-400">{student.admission_number ?? "No admission number"}</p>
+                      <p className="text-xs text-slate-400">{student.student_code}</p>
                     </div>
                   </td>
                   <td className="px-4 py-4">
                     <div>
                       <p className="font-medium text-slate-50">{student.class_name ?? "Unassigned"}</p>
                       <p className="text-xs text-slate-400">{student.class_level ?? "No class"}</p>
-                    </div>
-                  </td>
-                  <td className="px-4 py-4">
-                    <div>
-                      <p className="font-medium text-slate-50">{student.parent_name ?? "Not set"}</p>
-                      <p className="text-xs text-slate-400">{student.parent_phone ?? "No phone"}</p>
                     </div>
                   </td>
                   <td className="px-4 py-4">
@@ -126,10 +119,6 @@ export function StudentTable({ students, canManage }: StudentTableProps) {
                     <div>
                       <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Class</p>
                       <p className="mt-1 text-slate-100">{student.class_name ?? "Unassigned"}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Parent</p>
-                      <p className="mt-1 text-slate-100">{student.parent_name ?? "Not set"}</p>
                     </div>
                   </div>
                 </div>

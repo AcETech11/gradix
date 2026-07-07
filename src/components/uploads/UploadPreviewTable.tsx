@@ -28,7 +28,7 @@ export function UploadPreviewTable({ rows }: UploadPreviewTableProps) {
   const filteredRows = useMemo(
     () =>
       rows.filter((row) => {
-        const matchesSearch = [row.studentCode, row.studentName, row.admissionNumber, row.subjectName]
+        const matchesSearch = [row.studentCode, row.studentName, row.subjectName]
           .join(" ")
           .toLowerCase()
           .includes(search.toLowerCase());
@@ -76,7 +76,7 @@ export function UploadPreviewTable({ rows }: UploadPreviewTableProps) {
         <table className="min-w-[86rem] w-full text-left text-sm">
           <thead className="text-xs uppercase tracking-[0.12em] text-slate-400">
             <tr className="border-b border-white/10">
-              {["Status", "Student Code", "Student Name", "Admission Number", "Subject", "CA", "Exam", "Total", "Grade", "Attendance", "Domains", "Remark", "Errors"].map(
+              {["Status", "Student Code", "Student Name", "Subject", "CA", "Exam", "Total", "Grade", "Attendance", "Domains", "Remark", "Errors"].map(
                 (header) => (
                   <th className="px-3 py-3 font-medium" key={header}>
                     {header}
@@ -93,7 +93,6 @@ export function UploadPreviewTable({ rows }: UploadPreviewTableProps) {
                 </td>
                 <td className="px-3 py-3 font-mono text-xs">{row.studentCode}</td>
                 <td className="px-3 py-3">{row.studentName}</td>
-                <td className="px-3 py-3">{row.admissionNumber || "N/A"}</td>
                 <td className="px-3 py-3">{row.subjectName}</td>
                 <td className="px-3 py-3">{row.ca ?? "-"}</td>
                 <td className="px-3 py-3">{row.exam ?? "-"}</td>

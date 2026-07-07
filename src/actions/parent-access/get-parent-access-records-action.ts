@@ -109,7 +109,7 @@ export async function getParentAccessRecordsAction(input?: unknown): Promise<Par
     publishedStudentIds.length > 0
       ? supabase
           .from("students")
-          .select("id, permanent_code, admission_number, first_name, middle_name, last_name, class_id")
+          .select("id, permanent_code, first_name, middle_name, last_name, class_id")
           .eq("school_id", profile.school_id)
           .in("id", publishedStudentIds)
       : Promise.resolve({ data: [], error: null }),
@@ -139,7 +139,6 @@ export async function getParentAccessRecordsAction(input?: unknown): Promise<Par
         studentId: student.id,
         studentName: buildStudentName(student),
         studentCode: student.permanent_code,
-        admissionNumber: student.admission_number,
         classId: student.class_id,
         className: student.class_id ? classesById.get(student.class_id) ?? "Class" : "Unassigned",
         term,

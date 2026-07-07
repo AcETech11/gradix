@@ -53,7 +53,7 @@ export function ResultReviewTable({ academicYear, canEdit, canEditReportDetails,
   const filteredRows = useMemo(
     () =>
       rows.filter((row) => {
-        const matchesSearch = [row.studentCode, row.studentName, row.admissionNumber ?? "", row.subjectName]
+        const matchesSearch = [row.studentCode, row.studentName, row.subjectName]
           .join(" ")
           .toLowerCase()
           .includes(search.toLowerCase());
@@ -114,7 +114,7 @@ export function ResultReviewTable({ academicYear, canEdit, canEditReportDetails,
         <table className="min-w-[82rem] w-full text-left text-sm">
           <thead className="text-xs uppercase tracking-[0.12em] text-slate-400">
             <tr className="border-b border-white/10">
-              {["Student Code", "Student Name", "Admission", "Subject", "CA", "Exam", "Total", "Grade", "Remark", "Attendance", "Domains", "Teacher Comment", "Parent Views", "Status", "Edited", "Actions"].map((header) => (
+              {["Student Code", "Student Name", "Subject", "CA", "Exam", "Total", "Grade", "Remark", "Attendance", "Domains", "Teacher Comment", "Parent Views", "Status", "Edited", "Actions"].map((header) => (
                 <th className="px-3 py-3 font-medium" key={header}>
                   {header}
                 </th>
@@ -126,7 +126,6 @@ export function ResultReviewTable({ academicYear, canEdit, canEditReportDetails,
               <tr className="border-b border-white/5 text-slate-200" key={row.id}>
                 <td className="px-3 py-3 font-mono text-xs">{row.studentCode}</td>
                 <td className="px-3 py-3">{row.studentName}</td>
-                <td className="px-3 py-3">{row.admissionNumber ?? "N/A"}</td>
                 <td className="px-3 py-3">{row.subjectName}</td>
                 <td className="px-3 py-3">{row.continuousAssessment}</td>
                 <td className="px-3 py-3">{row.examScore}</td>
@@ -193,7 +192,6 @@ export function ResultReviewTable({ academicYear, canEdit, canEditReportDetails,
               <p>CA: {row.continuousAssessment}</p>
               <p>Exam: {row.examScore}</p>
               <p>Total: {row.totalScore}</p>
-              <p>Admission: {row.admissionNumber ?? "N/A"}</p>
               <p className="col-span-2">Teacher comment: {row.classTeacherComment ?? "-"}</p>
               <p className="col-span-2">Attendance: {row.attendancePresent ?? "-"} present / {row.attendanceAbsent ?? "-"} absent</p>
               <p className="col-span-2">Domains: {[formatRatings(row.affectiveDomain), formatRatings(row.psychomotorDomain)].filter(Boolean).join(" | ") || "-"}</p>

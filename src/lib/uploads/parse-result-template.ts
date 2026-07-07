@@ -9,7 +9,7 @@ import {
 } from "@/lib/reports/primary-report";
 import type { ParsedReportDetailsRow, ParsedResultTemplate, ParsedSubjectColumns, ParsedTemplateRow } from "@/lib/uploads/upload-types";
 
-const REQUIRED_IDENTITY_HEADERS = ["Student Code", "Student Name", "Admission Number", "Class"] as const;
+const REQUIRED_IDENTITY_HEADERS = ["Student Code", "Student Name", "Class"] as const;
 const CLASS_TEACHER_COMMENT_HEADER = "Class Teacher Comment";
 const MERGED_TEMPLATE_SHEET_NAME = "Results & Report Details";
 const LEGACY_TEMPLATE_SHEET_NAME = "Results Template";
@@ -319,7 +319,7 @@ export function parseResultTemplate(base64: string): ParsedResultTemplate {
   const subjectColumnsByName = new Map<string, ParsedSubjectColumns>();
   const unknownSubjectColumns: string[] = [];
 
-  headers.slice(4).forEach((header) => {
+  headers.slice(3).forEach((header) => {
     if (!header) {
       return;
     }
@@ -364,7 +364,7 @@ export function parseResultTemplate(base64: string): ParsedResultTemplate {
         values,
       };
     })
-    .filter((row) => row.studentCode || row.studentName || row.admissionNumber);
+    .filter((row) => row.studentCode || row.studentName);
 
   const mergedReportDetails = parseMergedReportDetailsRows(rawRows, headerRowIndex, headers);
   const legacyReportDetails = parseReportDetailsSheet(workbook);

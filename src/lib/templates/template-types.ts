@@ -30,7 +30,6 @@ export type TemplateSubject = {
 
 export type TemplateStudent = {
   permanentCode: string;
-  admissionNumber: string;
   name: string;
   className: string;
 };

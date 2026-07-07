@@ -33,7 +33,7 @@ export async function exportStudentsAction(filtersInput?: Partial<StudentFilters
 
     if (filters.query) {
       const term = filters.query.replace(/[%_]/g, "\\$&");
-      query = query.or(`first_name.ilike.%${term}%,middle_name.ilike.%${term}%,last_name.ilike.%${term}%,admission_number.ilike.%${term}%,permanent_code.ilike.%${term}%`);
+      query = query.or(`first_name.ilike.%${term}%,middle_name.ilike.%${term}%,last_name.ilike.%${term}%,permanent_code.ilike.%${term}%`);
     }
 
     const [studentsResult, classesResult] = await Promise.all([
@@ -49,20 +49,13 @@ export async function exportStudentsAction(filtersInput?: Partial<StudentFilters
     const rows = (studentsResult.data ?? []).map((student) => ({
       "Student Code": student.permanent_code,
       "Student Name": [student.first_name, student.middle_name, student.last_name].filter(Boolean).join(" "),
-      "Admission Number": student.admission_number ?? "",
       Class: student.class_id ? classes.get(student.class_id) ?? "" : "",
-      Gender: student.gender ?? "",
-      "Date of Birth": student.date_of_birth ?? "",
-      "Parent/Guardian Name": student.parent_full_name ?? "",
-      "Parent Phone": student.parent_phone ?? "",
-      "Parent Email": student.parent_email ?? "",
-      Address: student.address ?? "",
       Status: student.status,
       "Created Date": student.created_at ? new Date(student.created_at).toLocaleDateString() : "",
     }));
     const workbook = XLSX.utils.book_new();
     const worksheet = XLSX.utils.json_to_sheet(rows);
-    worksheet["!cols"] = [{ wch: 18 }, { wch: 28 }, { wch: 18 }, { wch: 14 }, { wch: 10 }, { wch: 14 }, { wch: 24 }, { wch: 18 }, { wch: 24 }, { wch: 30 }, { wch: 12 }, { wch: 14 }];
+    worksheet["!cols"] = [{ wch: 18 }, { wch: 32 }, { wch: 18 }, { wch: 12 }, { wch: 14 }];
     XLSX.utils.book_append_sheet(workbook, worksheet, "Students");
     const buffer = XLSX.write(workbook, { bookType: "xlsx", type: "buffer" }) as Buffer;
 

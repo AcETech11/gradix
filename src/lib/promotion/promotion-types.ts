@@ -10,7 +10,6 @@ export type PromotionClassOption = {
 export type PromotionStudent = {
   id: string;
   studentCode: string;
-  admissionNumber: string | null;
   name: string;
   classId: string | null;
   className: string;

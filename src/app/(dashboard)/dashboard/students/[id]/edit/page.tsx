@@ -29,7 +29,7 @@ export default async function StudentEditPage({ params }: StudentEditPageProps) 
       <PageHeader
         eyebrow="Students"
         title="Edit student"
-        description="Update profile details, replace the passport photo, and reassign the student if needed."
+        description="Update the student name or class assignment."
       />
 
       <StudentForm

@@ -13,21 +13,9 @@ export function mapStudentRecord(student: StudentListItem | StudentProfile) {
 }
 
 export function buildStudentFormDefaults(student?: StudentRecord | StudentListItem | StudentProfile | null): StudentFormValues {
-  const parentName = (student && "parent_name" in student ? student.parent_name : student?.parent_full_name) ?? "";
-
   return {
-    firstName: student?.first_name ?? "",
-    lastName: student?.last_name ?? "",
-    middleName: student?.middle_name ?? "",
-    gender: (student?.gender ?? "male") as StudentFormValues["gender"],
-    dateOfBirth: student?.date_of_birth ?? "",
+    fullName: student ? formatStudentName(student) : "",
     classId: student?.class_id ?? "",
-    parentName,
-    parentPhone: student?.parent_phone ?? "",
-    parentEmail: student?.parent_email ?? "",
-    admissionNumber: student?.admission_number ?? "",
-    status: (student?.status ?? "active") as StudentFormValues["status"],
-    passportUrl: student?.passport_url ?? "",
   };
 }
 

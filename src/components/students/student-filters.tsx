@@ -30,7 +30,7 @@ export function StudentFilters({ query, classId, status, classes }: StudentFilte
           defaultValue={query}
           id="query"
           name="query"
-          placeholder="Name, admission number, or student code"
+          placeholder="Student name or code"
           className="h-11 border-white/10 bg-slate-950/40 text-slate-100 placeholder:text-slate-500"
         />
       </div>

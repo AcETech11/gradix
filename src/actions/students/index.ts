@@ -307,7 +307,7 @@ export async function importStudentsAction(
       supabase.from("classes").select("id, name, academic_year").eq("school_id", profile.school_id),
       supabase
         .from("students")
-        .select("id, admission_number, permanent_code")
+        .select("id, first_name, middle_name, last_name, class_id, permanent_code")
         .eq("school_id", profile.school_id),
     ]);
 
@@ -320,15 +320,16 @@ export async function importStudentsAction(
     }
 
     const classMap = new Map((classesResult.data ?? []).map((classRecord) => [classRecord.name.trim().toLowerCase(), classRecord]));
-    const existingAdmissionNumbers = new Set(
-      (existingStudentsResult.data ?? [])
-        .map((student) => student.admission_number?.trim().toLowerCase())
-        .filter((value): value is string => Boolean(value)),
+    const normalizeName = (value: string) => value.trim().replace(/\s+/g, " ").toLowerCase();
+    const existingNameClassKeys = new Set(
+      (existingStudentsResult.data ?? []).map((student) =>
+        `${normalizeName([student.first_name, student.middle_name, student.last_name].filter(Boolean).join(" "))}:${student.class_id ?? ""}`,
+      ),
     );
-    const uniqueAdmissions = new Set<string>();
+    const uniqueNameClassKeys = new Set<string>();
     const normalizedRows = parsed.data.map((row, index) => {
       const issues: string[] = [];
-      const admissionNumber = row.admissionNumber.trim();
+      const studentName = row.studentName.trim().replace(/\s+/g, " ");
       const className = row.className.trim().toLowerCase();
       const classRecord = classMap.get(className) ?? null;
       const classId = classRecord?.id ?? null;
@@ -337,14 +338,20 @@ export async function importStudentsAction(
         issues.push(`Row ${index + 1}: class "${row.className}" was not found.`);
       }
 
-      if (existingAdmissionNumbers.has(admissionNumber.toLowerCase()) || uniqueAdmissions.has(admissionNumber.toLowerCase())) {
-        issues.push(`Row ${index + 1}: duplicate admission number "${admissionNumber}".`);
+      const duplicateKey = `${normalizeName(studentName)}:${classId ?? className}`;
+      if (classId && existingNameClassKeys.has(duplicateKey)) {
+        issues.push(`Row ${index + 1}: "${studentName}" already exists in ${classRecord?.name}.`);
       }
 
-      uniqueAdmissions.add(admissionNumber.toLowerCase());
+      if (uniqueNameClassKeys.has(duplicateKey)) {
+        issues.push(`Row ${index + 1}: duplicate student name and class in this file.`);
+      }
+
+      uniqueNameClassKeys.add(duplicateKey);
 
       return {
         ...row,
+        studentName,
         classId,
         academicYear: classRecord?.academic_year ?? null,
         issues,
@@ -373,13 +380,6 @@ export async function importStudentsAction(
         first_name: name.firstName,
         middle_name: name.middleName,
         last_name: name.lastName,
-        gender: row.gender || null,
-        date_of_birth: row.dateOfBirth || null,
-        parent_full_name: row.parentName?.trim() || null,
-        parent_phone: row.parentPhone?.trim() || null,
-        parent_email: row.parentEmail?.trim() || null,
-        address: row.address?.trim() || null,
-        admission_number: row.admissionNumber.trim(),
         status: "active",
         is_active: true,
         metadata: {

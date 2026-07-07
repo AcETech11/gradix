@@ -11,7 +11,7 @@ export function getAuthErrorMessage(message: string) {
 
   if (normalized.includes("duplicate key value violates unique constraint")) {
     if (normalized.includes("students_school_admission_key")) {
-      return "A student with that admission number already exists.";
+      return "A student record with that legacy identifier already exists.";
     }
 
     if (normalized.includes("students_school_code_key")) {

@@ -41,7 +41,7 @@ export async function getUploadResultsAction(uploadId: string): Promise<{ upload
   const userIds = Array.from(new Set([upload.uploaded_by].filter((id): id is string => Boolean(id))));
   const [studentsResult, subjectsResult, usersResult, reportRowsResult, classTermResult, accessResult, schoolResult] = await Promise.all([
     studentIds.length > 0
-      ? supabase.from("students").select("id, permanent_code, admission_number, first_name, middle_name, last_name").eq("school_id", profile.school_id).in("id", studentIds)
+      ? supabase.from("students").select("id, permanent_code, first_name, middle_name, last_name").eq("school_id", profile.school_id).in("id", studentIds)
       : Promise.resolve({ data: [], error: null }),
     subjectIds.length > 0
       ? supabase.from("subjects").select("id, name").eq("school_id", profile.school_id).in("id", subjectIds)
@@ -98,7 +98,6 @@ export async function getUploadResultsAction(uploadId: string): Promise<{ upload
       student.id,
       {
         code: student.permanent_code,
-        admissionNumber: student.admission_number,
         name: [student.first_name, student.middle_name, student.last_name].filter(Boolean).join(" "),
       },
     ]),
@@ -148,7 +147,7 @@ export async function getUploadResultsAction(uploadId: string): Promise<{ upload
         studentId: result.student_id,
         studentCode: student?.code ?? "Unknown",
         studentName: student?.name ?? "Unknown student",
-        admissionNumber: student?.admissionNumber ?? null,
+        admissionNumber: null,
         subjectId: result.subject_id,
         subjectName: subjectsById.get(result.subject_id) ?? "Unknown subject",
         continuousAssessment: result.continuous_assessment,

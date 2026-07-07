@@ -45,30 +45,26 @@ function mapStudentProfile(student: StudentRecord, classesById: Map<string, Clas
   } satisfies StudentListItem;
 }
 
+function splitFullName(fullName: string) {
+  const parts = fullName.trim().split(/\s+/).filter(Boolean);
+  const firstName = parts.shift() ?? "";
+  const lastName = parts.length ? parts.pop() ?? "" : firstName;
+  const middleName = parts.length ? parts.join(" ") : null;
+
+  return { firstName, middleName, lastName };
+}
+
 export function toStudentWritePayload(values: StudentFormValues, schoolId: string) {
-  const trimmedMiddleName = values.middleName.trim();
-  const trimmedParentEmail = values.parentEmail.trim();
-  const trimmedAdmissionNumber = values.admissionNumber.trim();
-  const trimmedPassportUrl = values.passportUrl.trim();
-  const isGraduated = values.status === "graduated";
-  const today = new Date().toISOString().slice(0, 10);
+  const name = splitFullName(values.fullName);
 
   return {
     school_id: schoolId,
     class_id: values.classId,
-    first_name: values.firstName.trim(),
-    middle_name: trimmedMiddleName || null,
-    last_name: values.lastName.trim(),
-    gender: values.gender,
-    date_of_birth: values.dateOfBirth.trim() || null,
-    parent_full_name: values.parentName.trim(),
-    parent_phone: values.parentPhone.trim(),
-    parent_email: trimmedParentEmail || null,
-    admission_number: trimmedAdmissionNumber || null,
-    passport_url: trimmedPassportUrl || null,
-    status: values.status as StudentStatus,
-    is_active: values.status === "active" || values.status === "repeated",
-    graduated_at: isGraduated ? today : null,
+    first_name: name.firstName,
+    middle_name: name.middleName,
+    last_name: name.lastName,
+    status: "active" as StudentStatus,
+    is_active: true,
     metadata: {
       source: "manual",
     },
@@ -97,7 +93,7 @@ export async function getStudentsPageData(searchParams?: Partial<StudentFilters>
   if (filters.query) {
     const term = escapeSearchTerm(filters.query);
     studentsQuery = studentsQuery.or(
-      `first_name.ilike.%${term}%,middle_name.ilike.%${term}%,last_name.ilike.%${term}%,admission_number.ilike.%${term}%,permanent_code.ilike.%${term}%`,
+      `first_name.ilike.%${term}%,middle_name.ilike.%${term}%,last_name.ilike.%${term}%,permanent_code.ilike.%${term}%`,
     );
   }
 
@@ -108,10 +104,7 @@ export async function getStudentsPageData(searchParams?: Partial<StudentFilters>
       .select("*")
       .eq("school_id", profile.school_id)
       .order("name", { ascending: true }),
-    supabase
-      .from("students")
-      .select("admission_number, permanent_code")
-      .eq("school_id", profile.school_id),
+    supabase.from("students").select("first_name, middle_name, last_name, class_id, permanent_code").eq("school_id", profile.school_id),
   ]);
 
   if (studentsResult.error) {
@@ -128,10 +121,10 @@ export async function getStudentsPageData(searchParams?: Partial<StudentFilters>
 
   const classesById = new Map<string, ClassRecord>((classesResult.data ?? []).map((classRecord) => [classRecord.id, classRecord]));
   const students = (studentsResult.data ?? []).map((student) => mapStudent(student, classesById));
-  const existingAdmissions = (existingStudentsResult.data ?? [])
-    .map((student) => student.admission_number)
-    .filter((value): value is string => Boolean(value));
   const existingStudentCodes = (existingStudentsResult.data ?? []).map((student) => student.permanent_code);
+  const existingStudentKeys = (existingStudentsResult.data ?? []).map(
+    (student) => `${[student.first_name, student.middle_name, student.last_name].filter(Boolean).join(" ").trim().replace(/\s+/g, " ").toLowerCase()}:${student.class_id ?? ""}`,
+  );
   const total = studentsResult.count ?? 0;
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
@@ -139,8 +132,8 @@ export async function getStudentsPageData(searchParams?: Partial<StudentFilters>
     profile,
     students,
     classes: classesResult.data ?? [],
-    existingAdmissions,
     existingStudentCodes,
+    existingStudentKeys,
     filters,
     pagination: {
       page: filters.page,

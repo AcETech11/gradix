@@ -19,7 +19,6 @@ export async function exportParentAccessAction(input?: unknown): Promise<ParentA
     const rows = data.records.map((record) => ({
       "Student Name": record.studentName,
       "Student Code": record.studentCode,
-      "Admission Number": record.admissionNumber ?? "",
       Class: record.className,
       Term: formatTerm(record.term),
       "Academic Year": record.academicYear,
@@ -37,7 +36,6 @@ export async function exportParentAccessAction(input?: unknown): Promise<ParentA
             {
               "Student Name": "",
               "Student Code": "",
-              "Admission Number": "",
               Class: "",
               Term: "",
               "Academic Year": "",
@@ -51,7 +49,6 @@ export async function exportParentAccessAction(input?: unknown): Promise<ParentA
 
     worksheet["!cols"] = [
       { wch: 28 },
-      { wch: 18 },
       { wch: 18 },
       { wch: 18 },
       { wch: 14 },

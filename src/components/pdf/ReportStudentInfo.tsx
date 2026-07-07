@@ -4,7 +4,6 @@ export function ReportStudentInfo({ report }: { report: PrintableReportData }) {
   const items = [
     ["Student Name", report.student.name],
     ...(report.reportSettings.showStudentCode ? [["Student Code", report.student.code]] : []),
-    ...(report.reportSettings.showAdmissionNumber ? [["Admission Number", report.student.admissionNumber ?? "N/A"]] : []),
     ["Class", report.result.className],
     ["Term", `${report.result.term} term`],
     ["Academic Year", report.result.academicYear],

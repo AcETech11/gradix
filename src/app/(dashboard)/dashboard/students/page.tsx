@@ -52,7 +52,7 @@ export default async function StudentsPage({ searchParams }: StudentsPageProps) 
             <StudentImportPanel
               canManage={canManage}
               classes={data.classes}
-              existingAdmissionNumbers={data.existingAdmissions}
+              existingStudentKeys={data.existingStudentKeys}
             />
             {data.profile.role === "admin" || data.profile.role === "headmaster" ? <ExportStudentsButton disabled={data.pagination.total === 0} filters={params} /> : null}
             {canManage ? (
@@ -111,7 +111,7 @@ export default async function StudentsPage({ searchParams }: StudentsPageProps) 
           action={
             canManage ? (
               <div className="flex flex-wrap justify-center gap-2">
-                <StudentImportPanel canManage={canManage} classes={data.classes} existingAdmissionNumbers={data.existingAdmissions} />
+                <StudentImportPanel canManage={canManage} classes={data.classes} existingStudentKeys={data.existingStudentKeys} />
                 <ExportStudentsButton disabled filters={params} />
                 <Button asChild className="bg-orange-500 text-slate-950 hover:bg-orange-400">
                   <Link href="/dashboard/students/new">

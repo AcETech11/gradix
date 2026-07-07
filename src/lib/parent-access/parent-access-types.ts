@@ -18,7 +18,6 @@ export type ParentAccessRecord = {
   studentId: string;
   studentName: string;
   studentCode: string;
-  admissionNumber: string | null;
   classId: string | null;
   className: string;
   term: SchoolTerm;

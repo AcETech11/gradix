@@ -12,7 +12,7 @@ export function UploadInstructions() {
           <h2 className="text-lg font-semibold text-slate-50">Upload checklist</h2>
           <ul className="mt-3 space-y-2 text-sm leading-6 text-slate-300">
             <li>Use the official class template from the templates page.</li>
-            <li>Do not rename headers or edit Student Code, Student Name, Admission Number, or Class.</li>
+            <li>Do not rename headers or edit Student Code, Student Name, or Class.</li>
             <li>Fill CA from 0 to 40, Exam from 0 to 60, and optional remarks.</li>
             <li>Save the workbook as .xlsx before uploading.</li>
           </ul>

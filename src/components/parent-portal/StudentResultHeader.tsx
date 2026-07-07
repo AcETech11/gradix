@@ -29,7 +29,6 @@ export function StudentResultHeader({ result }: StudentResultHeaderProps) {
       <div className="grid gap-3 p-5 sm:grid-cols-2 sm:p-7 lg:grid-cols-4">
         <Info label="Student" value={result.student.name} />
         <Info label="Result Code" value={result.student.code} />
-        <Info label="Admission No." value={result.student.admissionNumber ?? "N/A"} />
         <Info label="Class" value={result.result.className} />
         <Info label="Term" value={`${result.result.term} term`} />
         <Info label="Academic Year" value={result.result.academicYear} />

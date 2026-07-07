@@ -54,7 +54,7 @@ export async function getPromotionOverviewAction(input?: unknown): Promise<Promo
     fromClassId
       ? supabase
           .from("students")
-          .select("id, permanent_code, admission_number, first_name, middle_name, last_name, class_id, status, is_active")
+          .select("id, permanent_code, first_name, middle_name, last_name, class_id, status, is_active")
           .eq("school_id", profile.school_id)
           .eq("class_id", fromClassId)
           .in("status", ["active", "repeated"])
@@ -113,7 +113,6 @@ export async function getPromotionOverviewAction(input?: unknown): Promise<Promo
   const students: PromotionStudent[] = (selectedStudentsResult.data ?? []).map((student) => ({
     id: student.id,
     studentCode: student.permanent_code,
-    admissionNumber: student.admission_number,
     name: buildStudentName(student),
     classId: student.class_id,
     className: student.class_id ? classNames.get(student.class_id) ?? "Class" : "Unassigned",

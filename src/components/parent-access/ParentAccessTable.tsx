@@ -41,7 +41,6 @@ export function ParentAccessTable({ canManage, records }: ParentAccessTableProps
           </div>
         ),
       },
-      { accessorKey: "admissionNumber", header: "Admission Number", cell: ({ row }) => row.original.admissionNumber ?? "N/A" },
       { accessorKey: "className", header: "Class" },
       { accessorKey: "term", header: "Term", cell: ({ row }) => formatTerm(row.original.term) },
       { accessorKey: "academicYear", header: "Academic Year" },
@@ -189,7 +188,6 @@ export function ParentAccessTable({ canManage, records }: ParentAccessTableProps
             </div>
             <div className="mt-4 grid gap-2 text-sm text-slate-300 sm:grid-cols-2">
               <p>Class: {record.className}</p>
-              <p>Admission: {record.admissionNumber ?? "N/A"}</p>
               <p>{formatTerm(record.term)}, {record.academicYear}</p>
               <p>{formatViews(record.viewsUsed, record.maxViews)}</p>
               <p>{formatRemaining(record.viewsUsed, record.maxViews)}</p>

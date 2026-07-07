@@ -76,7 +76,6 @@ function getBaseRowErrors({
   rowStudentCodes,
   student,
   studentCode,
-  admissionNumber,
   uploadedClassName,
 }: {
   className: string;
@@ -84,7 +83,6 @@ function getBaseRowErrors({
   rowStudentCodes: Map<string, number>;
   student?: UploadStudent;
   studentCode: string;
-  admissionNumber: string;
   uploadedClassName: string;
 }) {
   const errors: string[] = [];
@@ -100,10 +98,6 @@ function getBaseRowErrors({
 
   if (studentCode && duplicateStudentCodes.has(studentCode) && (rowStudentCodes.get(studentCode) ?? 0) > 1) {
     errors.push("Duplicate Student Code appears in this file.");
-  }
-
-  if (student?.admissionNumber && admissionNumber && student.admissionNumber.toLowerCase() !== admissionNumber.toLowerCase()) {
-    warnings.push("Admission Number does not match the existing student record.");
   }
 
   if (uploadedClassName && uploadedClassName.toLowerCase() !== className.toLowerCase()) {
@@ -216,7 +210,6 @@ export function validateResultUpload(options: ValidateResultUploadOptions): Uplo
       rowStudentCodes,
       student,
       studentCode: templateRow.studentCode,
-      admissionNumber: templateRow.admissionNumber,
       uploadedClassName: templateRow.className,
     });
 

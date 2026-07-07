@@ -19,7 +19,7 @@ export default async function NewStudentPage() {
       <PageHeader
         eyebrow="Students"
         title="Add a student"
-        description="Create a new student record with a passport photo, class assignment, and parent contact details."
+        description="Create a student record with only the student name and class. Gradix generates the permanent result code automatically."
       />
 
       <StudentForm classes={data.classes} mode="create" schoolId={profile.school_id} />

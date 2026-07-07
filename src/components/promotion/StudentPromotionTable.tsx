@@ -101,7 +101,7 @@ export function StudentPromotionTable({ classes, selected, students }: StudentPr
         <table className="min-w-[58rem] w-full text-left text-sm">
           <thead className="text-xs uppercase tracking-[0.12em] text-slate-400">
             <tr className="border-b border-white/10">
-              {["", "Student", "Admission", "Current Class", "Status", "Target Warning"].map((header) => (
+              {["", "Student", "Current Class", "Status", "Target Warning"].map((header) => (
                 <th className="px-3 py-3 font-semibold" key={header}>{header}</th>
               ))}
             </tr>
@@ -116,7 +116,6 @@ export function StudentPromotionTable({ classes, selected, students }: StudentPr
                   <p className="font-semibold text-slate-50">{student.name}</p>
                   <p className="font-mono text-xs text-slate-400">{student.studentCode}</p>
                 </td>
-                <td className="px-3 py-3">{student.admissionNumber ?? "N/A"}</td>
                 <td className="px-3 py-3">{student.className}</td>
                 <td className="px-3 py-3"><StudentStatusBadge status={student.status} /></td>
                 <td className="px-3 py-3">{student.hasTargetEnrollment ? <span className="text-amber-200">Already enrolled in target year</span> : <span className="text-slate-400">Ready</span>}</td>
@@ -140,7 +139,6 @@ export function StudentPromotionTable({ classes, selected, students }: StudentPr
               <StudentStatusBadge status={student.status} />
             </div>
             <div className="mt-3 grid gap-2 text-sm text-slate-300">
-              <p>Admission: {student.admissionNumber ?? "N/A"}</p>
               <p>Class: {student.className}</p>
               {student.hasTargetEnrollment ? <p className="text-amber-200">Already enrolled in target year.</p> : null}
             </div>

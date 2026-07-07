@@ -1,7 +1,7 @@
 /* eslint-disable @next/next/no-img-element */
 
 import Link from "next/link";
-import { ArrowLeft, CalendarDays, Edit3, Mail, Phone, School, UserRound, type LucideIcon } from "lucide-react";
+import { ArrowLeft, Edit3, School, UserRound, type LucideIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { formatStudentName } from "@/lib/students/utils";
@@ -61,9 +61,7 @@ export function StudentProfileView({ student, canManage }: StudentProfileProps) 
             <h1 className="text-2xl font-semibold tracking-tight text-slate-50 sm:text-3xl">{fullName}</h1>
             <div className="flex flex-wrap gap-3 text-sm text-slate-300">
               <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5">Code: {student.student_code}</span>
-              <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5">
-                Admission: {student.admission_number ?? "Not set"}
-              </span>
+              <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5">Class: {student.class_name ?? "Unassigned"}</span>
             </div>
           </div>
         </div>
@@ -87,31 +85,10 @@ export function StudentProfileView({ student, canManage }: StudentProfileProps) 
         </div>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-[0.95fr_1.05fr]">
-        <section className="space-y-4 rounded-2xl border border-white/10 bg-slate-900/70 p-5">
-          <h2 className="text-lg font-semibold text-slate-50">Student Information</h2>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <InfoCard icon={UserRound} title="Full name" value={fullName} />
-            <InfoCard icon={School} title="Class" value={student.class_name ?? "Unassigned"} />
-            <InfoCard icon={CalendarDays} title="Date of birth" value={student.date_of_birth ?? "Not set"} />
-            <InfoCard icon={UserRound} title="Gender" value={student.gender ?? "Not set"} />
-          </div>
-        </section>
-
-        <section className="space-y-4 rounded-2xl border border-white/10 bg-slate-900/70 p-5">
-          <h2 className="text-lg font-semibold text-slate-50">Parent Information</h2>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <InfoCard icon={UserRound} title="Parent name" value={student.parent_name ?? "Not set"} />
-            <InfoCard icon={Phone} title="Parent phone" value={student.parent_phone ?? "Not set"} />
-            <InfoCard icon={Mail} title="Parent email" value={student.parent_email ?? "Not set"} />
-            <InfoCard icon={UserRound} title="Relationship" value={student.parent_relationship ?? "Not set"} />
-          </div>
-        </section>
-      </div>
-
       <section className="space-y-4 rounded-2xl border border-white/10 bg-slate-900/70 p-5">
-        <h2 className="text-lg font-semibold text-slate-50">Academic Information</h2>
+        <h2 className="text-lg font-semibold text-slate-50">Student Information</h2>
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <InfoCard icon={UserRound} title="Student name" value={fullName} />
           <InfoCard icon={School} title="Enrolled date" value={student.enrolled_at ?? "Not set"} />
           <InfoCard icon={School} title="Class name" value={student.class_name ?? "Unassigned"} />
           <InfoCard icon={School} title="Class level" value={student.class_level ?? "Not set"} />
@@ -119,23 +96,7 @@ export function StudentProfileView({ student, canManage }: StudentProfileProps) 
         </div>
       </section>
 
-      <section className="grid gap-4 lg:grid-cols-[0.85fr_1.15fr]">
-        <div className="rounded-2xl border border-white/10 bg-slate-900/70 p-5">
-          <h2 className="text-lg font-semibold text-slate-50">Profile Photo</h2>
-          <div className="mt-4 flex min-h-80 items-center justify-center overflow-hidden rounded-3xl border border-white/10 bg-white/5">
-            {student.passport_url ? (
-              <img alt={fullName} className="h-full w-full object-cover" src={student.passport_url} />
-            ) : (
-              <div className="flex flex-col items-center gap-3 text-center">
-                <div className="flex size-16 items-center justify-center rounded-3xl border border-orange-400/20 bg-orange-500/10 text-orange-200">
-                  <UserRound className="size-7" />
-                </div>
-                <p className="text-sm text-slate-400">No passport photo uploaded yet.</p>
-              </div>
-            )}
-          </div>
-        </div>
-
+      <section className="grid gap-4 lg:grid-cols-2">
         <div className="space-y-4">
           <div className="rounded-2xl border border-white/10 bg-slate-900/70 p-5">
             <h2 className="text-lg font-semibold text-slate-50">Permanent Student Code</h2>

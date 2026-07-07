@@ -39,7 +39,7 @@ async function loadUploadDataset(uploadId: string) {
   const subjectIds = Array.from(new Set((results ?? []).map((row) => row.subject_id)));
   const [studentsResult, subjectsResult, commentsResult] = await Promise.all([
     studentIds.length
-      ? supabase.from("students").select("id, permanent_code, admission_number, first_name, middle_name, last_name").eq("school_id", profile.school_id).in("id", studentIds)
+      ? supabase.from("students").select("id, permanent_code, first_name, middle_name, last_name").eq("school_id", profile.school_id).in("id", studentIds)
       : Promise.resolve({ data: [], error: null }),
     subjectIds.length
       ? supabase.from("subjects").select("id, name").eq("school_id", profile.school_id).in("id", subjectIds)
@@ -113,7 +113,7 @@ async function loadPublishedSharingDataset(uploadId: string) {
   const { data: students, error: studentsError } = studentIds.length
     ? await supabase
         .from("students")
-        .select("id, permanent_code, admission_number, first_name, middle_name, last_name")
+        .select("id, permanent_code, first_name, middle_name, last_name")
         .eq("school_id", profile.school_id)
         .in("id", studentIds)
     : { data: [], error: null };
@@ -133,7 +133,6 @@ export async function exportResultsAction(uploadId: string): Promise<AuthActionS
       return {
         "Student Code": student?.permanent_code ?? "",
         "Student Name": student ? [student.first_name, student.middle_name, student.last_name].filter(Boolean).join(" ") : "",
-        "Admission Number": student?.admission_number ?? "",
         Class: data.upload.class_name,
         "Academic Year": data.upload.academic_year,
         Term: data.upload.term,
@@ -173,7 +172,6 @@ export async function exportBroadsheetAction(uploadId: string): Promise<AuthActi
         Position: formatPosition(data.overallPositions.get(studentId)),
         "Student Code": student?.permanent_code ?? "",
         "Student Name": student ? [student.first_name, student.middle_name, student.last_name].filter(Boolean).join(" ") : "",
-        "Admission No": student?.admission_number ?? "",
       };
 
       subjects.forEach((subject) => {
@@ -235,7 +233,6 @@ export async function exportParentResultSharingSheetAction(uploadId: string): Pr
 
         return {
           "Student Name": studentName,
-          "Admission Number": student.admission_number ?? "",
           Class: data.upload.class_name,
           "Academic Year": data.upload.academic_year,
           Term: data.upload.term,
@@ -258,7 +255,6 @@ export async function exportParentResultSharingSheetAction(uploadId: string): Pr
     XLSX.utils.sheet_add_json(worksheet, rows, { origin: "A4" });
     worksheet["!cols"] = [
       { wch: 28 },
-      { wch: 18 },
       { wch: 16 },
       { wch: 16 },
       { wch: 12 },

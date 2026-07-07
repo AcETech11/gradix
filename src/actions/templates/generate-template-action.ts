@@ -109,7 +109,7 @@ export async function generateResultTemplateAction(input: unknown): Promise<Temp
 
   const { data: students, error: studentsError } = await supabase
     .from("students")
-    .select("id, permanent_code, admission_number, first_name, middle_name, last_name, status, is_active")
+    .select("id, permanent_code, first_name, middle_name, last_name, status, is_active")
     .eq("school_id", profile.school_id)
     .eq("class_id", parsed.data.classId)
     .eq("is_active", true)
@@ -162,7 +162,6 @@ export async function generateResultTemplateAction(input: unknown): Promise<Temp
     })),
     students: eligibleStudents.map((student) => ({
       permanentCode: student.permanent_code,
-      admissionNumber: student.admission_number ?? "",
       name: [student.first_name, student.middle_name, student.last_name].filter(Boolean).join(" "),
       className: schoolClass.name,
     })),

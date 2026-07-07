@@ -157,7 +157,7 @@ export async function getValidationContext(classId: string, term: SchoolTerm, ac
     supabase.from("subjects").select("id, name, code").eq("school_id", profile.school_id).eq("is_active", true).in("id", subjectIds),
     supabase
       .from("students")
-      .select("id, permanent_code, admission_number, first_name, middle_name, last_name")
+      .select("id, permanent_code, first_name, middle_name, last_name")
       .eq("school_id", profile.school_id)
       .eq("class_id", classId)
       .eq("is_active", true)
@@ -211,7 +211,7 @@ export async function getValidationContext(classId: string, term: SchoolTerm, ac
     students: eligibleStudents.map((student) => ({
       id: student.id,
       permanentCode: student.permanent_code,
-      admissionNumber: student.admission_number,
+      admissionNumber: null,
       name: [student.first_name, student.middle_name, student.last_name].filter(Boolean).join(" "),
     })) satisfies UploadStudent[],
     existingResults: existingResults ?? [],

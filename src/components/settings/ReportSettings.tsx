@@ -64,7 +64,6 @@ export function ReportSettings({ values, canEdit }: { values: ReportSettingsInpu
       <div className="grid gap-3 sm:grid-cols-2">
         <Check label="Show school motto" disabled={!canEdit} {...register("showSchoolMotto")} />
         <Check label="Show student code" disabled={!canEdit} {...register("showStudentCode")} />
-        <Check label="Show admission number" disabled={!canEdit} {...register("showAdmissionNumber")} />
         <Check label="Show class position" disabled={!canEdit} {...register("showClassPosition")} />
         <Check label="Show grading guide" disabled={!canEdit} {...register("showGradingGuide")} />
         <Check label="Show performance summary" disabled={!canEdit} {...register("showPerformanceSummary")} />

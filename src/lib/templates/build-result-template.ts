@@ -6,7 +6,7 @@ import { AFFECTIVE_TRAITS, formatTraitHeader, PSYCHOMOTOR_TRAITS } from "@/lib/r
 const MIME_TYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" as const;
 const MAIN_SHEET_NAME = "Results & Report Details";
 const MAIN_INSTRUCTION_ROWS = [
-  "Fill CA, Exam, Subject Remarks, Class Teacher Comment, Attendance, Affective Domain, and Psychomotor Domain ratings for each student. Do not edit Student Code, Student Name, Admission Number, or Class.",
+  "Fill CA, Exam, Subject Remarks, Class Teacher Comment, Attendance, Affective Domain, and Psychomotor Domain ratings for each student. Do not edit Student Code, Student Name, or Class.",
   "Ratings must be whole numbers from 1 to 5.",
   "Attendance Present + Attendance Absent should normally equal the number of days school opened in the Term Details sheet.",
 ] as const;
@@ -37,7 +37,7 @@ function sanitizeFilePart(value: string) {
 }
 
 function getTemplateRows(input: ResultTemplateWorkbookInput) {
-  const headers = ["Student Code", "Student Name", "Admission Number", "Class"];
+  const headers = ["Student Code", "Student Name", "Class"];
 
   input.subjects.forEach((subject) => {
     headers.push(`${subject.name} CA (0-40)`, `${subject.name} Exam (0-60)`, `${subject.name} Remark`);
@@ -56,14 +56,13 @@ function getTemplateRows(input: ResultTemplateWorkbookInput) {
       : input.includeSampleRows
         ? Array.from({ length: 5 }, (_, index) => ({
             permanentCode: `STUDENT-CODE-${index + 1}`,
-            admissionNumber: `ADM-${String(index + 1).padStart(3, "0")}`,
             name: `Student Name ${index + 1}`,
             className: input.className,
           }))
         : [];
 
   const rows = students.map((student) => {
-    const row = [student.permanentCode, student.name, student.admissionNumber, student.className];
+    const row = [student.permanentCode, student.name, student.className];
 
     input.subjects.forEach(() => {
       row.push("", "", "");
@@ -90,7 +89,7 @@ function getGroupLabelRow(headers: string[]) {
 }
 
 function getColumnBand(header: string, index: number): ColumnBand {
-  if (index < 4) return "identity";
+  if (index < 3) return "identity";
   if (header.endsWith("CA (0-40)")) return "ca";
   if (header.endsWith("Exam (0-60)")) return "exam";
   if (header.endsWith("Remark")) return "remark";
@@ -102,7 +101,7 @@ function getColumnBand(header: string, index: number): ColumnBand {
 }
 
 function setWorksheetPresentation(worksheet: XLSX.WorkSheet, columnCount: number, subjectCount: number, studentCount: number) {
-  worksheet["!freeze"] = { xSplit: 4, ySplit: FIRST_DATA_ROW_INDEX };
+  worksheet["!freeze"] = { xSplit: 3, ySplit: FIRST_DATA_ROW_INDEX };
   worksheet["!merges"] = MAIN_INSTRUCTION_ROWS.map((_, rowIndex) => ({
     s: { r: rowIndex, c: 0 },
     e: { r: rowIndex, c: Math.max(columnCount - 1, 0) },
@@ -125,10 +124,6 @@ function setWorksheetPresentation(worksheet: XLSX.WorkSheet, columnCount: number
     }
 
     if (index === 2) {
-      return { wch: 20 };
-    }
-
-    if (index === 3) {
       return { wch: 18 };
     }
 
@@ -154,13 +149,13 @@ function setWorksheetPresentation(worksheet: XLSX.WorkSheet, columnCount: number
 
 function addGroupMerges(worksheet: XLSX.WorkSheet, columnCount: number, subjectCount: number) {
   const merges = worksheet["!merges"] ?? [];
-  const subjectStart = 4;
+  const subjectStart = 3;
   const reportStart = subjectStart + subjectCount * 3;
   const attendanceStart = reportStart + 1;
   const affectiveStart = attendanceStart + 2;
   const psychomotorStart = affectiveStart + AFFECTIVE_TRAITS.length;
 
-  merges.push({ s: { r: GROUP_ROW_INDEX, c: 0 }, e: { r: GROUP_ROW_INDEX, c: 3 } });
+  merges.push({ s: { r: GROUP_ROW_INDEX, c: 0 }, e: { r: GROUP_ROW_INDEX, c: 2 } });
 
   if (subjectCount > 0) {
     merges.push({ s: { r: GROUP_ROW_INDEX, c: subjectStart }, e: { r: GROUP_ROW_INDEX, c: reportStart - 1 } });
@@ -294,7 +289,7 @@ function buildInstructionsSheet(input: ResultTemplateWorkbookInput) {
     ["Step 3", "Admin/headmaster opens \"Term Details\" and fills No. of Days School Opened, Term Ends, and Next Term Begins."],
     ["Step 4", "Save as .xlsx and upload to Gradix."],
     [],
-    ["Do Not Edit", "Student Code, Student Name, Admission Number, or Class."],
+    ["Do Not Edit", "Student Code, Student Name, or Class."],
     ["CA Rules", "CA score columns must contain numbers from 0 to 40."],
     ["Exam Rules", "Exam score columns must contain numbers from 0 to 60."],
     ["Remark Rules", "Subject Remark and Class Teacher Comment are optional text fields."],
