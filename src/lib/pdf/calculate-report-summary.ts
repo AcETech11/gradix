@@ -11,12 +11,17 @@ function remarkFromAverage(average: number) {
 }
 
 export function calculateReportSummary(rows: ParentResultRow[]): ReportSummary {
-  const totalScore = rows.reduce((sum, row) => sum + Number(row.total ?? 0), 0);
-  const averageScore = rows.length ? totalScore / rows.length : 0;
-  const sortedRows = [...rows].sort((first, second) => Number(second.total) - Number(first.total));
+  // Exclude placeholder/not offered subjects where both CA and Exam scores are zero
+  const realRows = rows.filter(
+    (row) => !(Number(row.ca ?? 0) === 0 && Number(row.exam ?? 0) === 0)
+  );
+
+  const totalScore = realRows.reduce((sum, row) => sum + Number(row.total ?? 0), 0);
+  const averageScore = realRows.length ? totalScore / realRows.length : 0;
+  const sortedRows = [...realRows].sort((first, second) => Number(second.total) - Number(first.total));
 
   return {
-    subjectCount: rows.length,
+    subjectCount: realRows.length,
     totalScore,
     averageScore,
     highestSubject: sortedRows[0] ?? null,

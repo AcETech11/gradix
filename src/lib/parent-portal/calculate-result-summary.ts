@@ -9,16 +9,21 @@ function overallGradeFromAverage(average: number) {
 }
 
 export function calculateResultSummary(rows: ParentResultRow[]): ResultSummary {
-  const totalScore = rows.reduce((sum, row) => sum + Number(row.total ?? 0), 0);
-  const averageScore = rows.length ? totalScore / rows.length : 0;
-  const sorted = [...rows].sort((first, second) => Number(second.total) - Number(first.total));
+  // Exclude placeholder/not offered subjects where both CA and Exam scores are zero
+  const realRows = rows.filter(
+    (row) => !(Number(row.ca ?? 0) === 0 && Number(row.exam ?? 0) === 0)
+  );
+
+  const totalScore = realRows.reduce((sum, row) => sum + Number(row.total ?? 0), 0);
+  const averageScore = realRows.length ? totalScore / realRows.length : 0;
+  const sorted = [...realRows].sort((first, second) => Number(second.total) - Number(first.total));
 
   return {
     totalScore,
     averageScore,
     highestSubject: sorted[0] ?? null,
     lowestSubject: sorted[sorted.length - 1] ?? null,
-    subjectCount: rows.length,
+    subjectCount: realRows.length,
     overallGrade: overallGradeFromAverage(averageScore),
   };
 }
