@@ -36,8 +36,13 @@ export async function getUploadResultsAction(uploadId: string): Promise<{ upload
     throw new Error(resultsError.message);
   }
 
-  const studentIds = Array.from(new Set((results ?? []).map((result) => result.student_id)));
-  const subjectIds = Array.from(new Set((results ?? []).map((result) => result.subject_id)));
+  // Filter out placeholder/not offered subjects where both CA and Exam scores are zero
+  const realResults = (results ?? []).filter(
+    (result) => !(Number(result.continuous_assessment ?? 0) === 0 && Number(result.exam_score ?? 0) === 0)
+  );
+
+  const studentIds = Array.from(new Set(realResults.map((result) => result.student_id)));
+  const subjectIds = Array.from(new Set(realResults.map((result) => result.subject_id)));
   const userIds = Array.from(new Set([upload.uploaded_by].filter((id): id is string => Boolean(id))));
   const [studentsResult, subjectsResult, usersResult, reportRowsResult, classTermResult, accessResult, schoolResult] = await Promise.all([
     studentIds.length > 0
@@ -137,7 +142,7 @@ export async function getUploadResultsAction(uploadId: string): Promise<{ upload
       schoolSlug: schoolResult.data?.slug ?? null,
       schoolLogoUrl: schoolResult.data?.logo_url ?? null,
     },
-    rows: (results ?? []).map((result) => {
+    rows: realResults.map((result) => {
       const student = studentsById.get(result.student_id);
       const reportRow = reportRowsByStudentId.get(result.student_id);
       const access = accessByStudentId.get(result.student_id);

@@ -35,8 +35,13 @@ async function loadUploadDataset(uploadId: string) {
 
   if (resultsError) throw resultsError;
 
-  const studentIds = Array.from(new Set((results ?? []).map((row) => row.student_id)));
-  const subjectIds = Array.from(new Set((results ?? []).map((row) => row.subject_id)));
+  // Filter out placeholder/not offered subjects where both CA and Exam scores are zero
+  const realResults = (results ?? []).filter(
+    (row) => !(Number(row.continuous_assessment ?? 0) === 0 && Number(row.exam_score ?? 0) === 0)
+  );
+
+  const studentIds = Array.from(new Set(realResults.map((row) => row.student_id)));
+  const subjectIds = Array.from(new Set(realResults.map((row) => row.subject_id)));
   const [studentsResult, subjectsResult, commentsResult] = await Promise.all([
     studentIds.length
       ? supabase.from("students").select("id, permanent_code, first_name, middle_name, last_name").eq("school_id", profile.school_id).in("id", studentIds)
@@ -65,12 +70,12 @@ async function loadUploadDataset(uploadId: string) {
   const comments = new Map((commentsResult.data ?? []).map((row) => [row.student_id, row.class_teacher_comment ?? ""]));
   const studentTotals = new Map<string, { total: number; count: number }>();
 
-  (results ?? []).forEach((row) => {
+  realResults.forEach((row) => {
     const current = studentTotals.get(row.student_id) ?? { total: 0, count: 0 };
     studentTotals.set(row.student_id, { total: current.total + Number(row.total_score ?? 0), count: current.count + 1 });
   });
 
-  const subjectPositions = calculateSubjectPositions((results ?? []).map((row) => ({ studentId: row.student_id, subjectId: row.subject_id, totalScore: Number(row.total_score ?? 0) })));
+  const subjectPositions = calculateSubjectPositions(realResults.map((row) => ({ studentId: row.student_id, subjectId: row.subject_id, totalScore: Number(row.total_score ?? 0) })));
   const overallPositions = calculateOverallPositions(
     Array.from(studentTotals.entries()).map(([studentId, summary]) => ({
       studentId,
@@ -79,7 +84,7 @@ async function loadUploadDataset(uploadId: string) {
     })),
   );
 
-  return { upload, results: results ?? [], students, subjects, comments, studentTotals, subjectPositions, overallPositions };
+  return { upload, results: realResults, students, subjects, comments, studentTotals, subjectPositions, overallPositions };
 }
 
 async function loadPublishedSharingDataset(uploadId: string) {
